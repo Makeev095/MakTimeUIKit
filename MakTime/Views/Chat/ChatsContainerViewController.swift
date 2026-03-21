@@ -17,6 +17,7 @@ final class ChatsContainerViewController: UIViewController {
         self.onSelectConversation = onSelectConversation
         self.onStartCall = onStartCall
         self.conversationListVC = ConversationListViewController(
+            authService: authService,
             socketService: socketService,
             onSelectConversation: onSelectConversation,
             onStartCall: onStartCall
@@ -73,7 +74,7 @@ final class ChatsContainerViewController: UIViewController {
             conversationListVC.view.topAnchor.constraint(equalTo: divider.bottomAnchor),
             conversationListVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             conversationListVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            conversationListVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            conversationListVC.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
     }
 }

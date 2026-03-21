@@ -46,8 +46,8 @@ final class ChatViewController: UIViewController {
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .interactive
-        tableView.contentInsetAdjustmentBehavior = .never
-        tableView.estimatedRowHeight = 80
+        tableView.contentInsetAdjustmentBehavior = .automatic
+        tableView.estimatedRowHeight = 360
         tableView.rowHeight = UITableView.automaticDimension
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
@@ -67,7 +67,7 @@ final class ChatViewController: UIViewController {
             self?.showPhotoPicker()
         }
         chatInput.onVoiceRecord = { [weak self] in
-            self?.vm.startVoiceRecording()
+            Task { await self?.vm.startVoiceRecording() }
         }
         chatInput.onVoiceStop = { [weak self] in
             self?.vm.stopVoiceRecording()
@@ -77,14 +77,15 @@ final class ChatViewController: UIViewController {
         
         chatInputBottomConstraint = chatInput.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: typingLabel.topAnchor),
-            typingLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            typingLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            typingLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             typingLabel.bottomAnchor.constraint(equalTo: chatInput.topAnchor, constant: -4),
-            chatInput.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            chatInput.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chatInput.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            chatInput.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             chatInputBottomConstraint!
         ])
         

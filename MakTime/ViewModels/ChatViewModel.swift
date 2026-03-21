@@ -97,6 +97,7 @@ class ChatViewModel: ObservableObject {
             text: trimmed,
             replyToId: replyTo?.id
         )
+        notifyConversationListPreview(lastMessage: trimmed, type: .text)
         messageText = ""
         replyTo = nil
         stopTypingIndicator()
@@ -112,6 +113,7 @@ class ChatViewModel: ObservableObject {
                 fileName: "photo.jpg",
                 replyToId: replyTo?.id
             )
+            notifyConversationListPreview(lastMessage: nil, type: .image)
             replyTo = nil
         } catch {}
     }
@@ -127,11 +129,16 @@ class ChatViewModel: ObservableObject {
                 fileName: url.lastPathComponent,
                 replyToId: replyTo?.id
             )
+            notifyConversationListPreview(lastMessage: nil, type: .video)
             replyTo = nil
         } catch {}
     }
     
-    func startVoiceRecording() {
+    func startVoiceRecording() async {
+        guard await MediaService.requestMicrophonePermission() else {
+            isRecording = false
+            return
+        }
         do {
             try mediaService.startVoiceRecording()
             isRecording = true
@@ -144,23 +151,31 @@ class ChatViewModel: ObservableObject {
     func stopVoiceRecording() {
         isRecording = false
         guard let result = mediaService.stopVoiceRecording() else { return }
+        let url = result.url
+        let duration = result.duration
         Task {
             do {
-                let data = try Data(contentsOf: result.url)
+                let data = try Data(contentsOf: url)
+                guard !data.isEmpty else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
                 let fileUrl = try await MediaService.uploadData(data, filename: "voice_\(UUID().uuidString).m4a", mimeType: "audio/m4a")
                 socketService?.sendMessage(
                     conversationId: conversation.id,
+                    text: "",
                     type: "voice",
                     fileUrl: fileUrl,
                     fileName: "voice.m4a",
-                    duration: result.duration,
+                    duration: duration,
                     replyToId: replyTo?.id
                 )
+                notifyConversationListPreview(lastMessage: nil, type: .voice)
                 replyTo = nil
             } catch {
                 print("Voice upload error: \(error)")
             }
-            try? FileManager.default.removeItem(at: result.url)
+            try? FileManager.default.removeItem(at: url)
         }
     }
 
@@ -186,6 +201,7 @@ class ChatViewModel: ObservableObject {
                 duration: duration,
                 replyToId: replyTo?.id
             )
+            notifyConversationListPreview(lastMessage: nil, type: .videoNote)
             replyTo = nil
         } catch {
             print("VideoNote upload error: \(error)")
@@ -221,5 +237,17 @@ class ChatViewModel: ObservableObject {
     func replyToMessage(for message: Message) -> Message? {
         guard let replyId = message.replyToId else { return nil }
         return messages.first { $0.id == replyId }
+    }
+    
+    private func notifyConversationListPreview(lastMessage: String?, type: MessageType) {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var userInfo: [String: Any] = [
+            "conversationId": conversation.id,
+            "lastMessageType": type.rawValue,
+            "lastMessageTime": f.string(from: Date())
+        ]
+        if let lastMessage, !lastMessage.isEmpty { userInfo["lastMessage"] = lastMessage }
+        NotificationCenter.default.post(name: .conversationListPreviewUpdated, object: nil, userInfo: userInfo)
     }
 }

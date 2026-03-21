@@ -2,6 +2,7 @@ import UIKit
 import Combine
 
 final class ConversationListViewController: UIViewController {
+    private let authService: AuthService
     private let socketService: SocketService
     private let onSelectConversation: (Conversation) -> Void
     private let onStartCall: (String, String, String) -> Void
@@ -14,7 +15,8 @@ final class ConversationListViewController: UIViewController {
     private let refreshControl = UIRefreshControl()
     private let emptyLabel = UILabel()
     
-    init(socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String) -> Void) {
+    init(authService: AuthService, socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String) -> Void) {
+        self.authService = authService
         self.socketService = socketService
         self.onSelectConversation = onSelectConversation
         self.onStartCall = onStartCall
@@ -27,7 +29,13 @@ final class ConversationListViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.bgPrimary
         
-        vm.setup(socketService: socketService)
+        vm.setup(socketService: socketService, currentUserId: authService.user?.id ?? "")
+        authService.$user
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] user in
+                self?.vm.updateCurrentUserId(user?.id ?? "")
+            }
+            .store(in: &cancellables)
         
         searchBar.placeholder = "Поиск..."
         searchBar.onTextChanged = { [weak self] text in
@@ -67,7 +75,7 @@ final class ConversationListViewController: UIViewController {
             tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: tableView.centerYAnchor)
         ])
@@ -81,6 +89,13 @@ final class ConversationListViewController: UIViewController {
                 let query = self?.vm.searchQuery ?? ""
                 let showEmpty = convs.isEmpty && !(self?.vm.isLoading ?? false) && (query.isEmpty || results.isEmpty)
                 self?.emptyLabel.isHidden = !showEmpty
+            }
+            .store(in: &cancellables)
+
+        socketService.$onlineUserIds
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
             }
             .store(in: &cancellables)
         

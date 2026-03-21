@@ -2,6 +2,7 @@ import UIKit
 
 final class MessageCell: UITableViewCell {
     private let bubbleView = UIView()
+    private let contentStack = UIStackView()
     private let textLabel_ = UILabel()
     private let timeLabel = UILabel()
     private let mediaView = CachedImageView()
@@ -9,11 +10,18 @@ final class MessageCell: UITableViewCell {
     private var onDelete: (() -> Void)?
     private var isMine = false
     
-    private var bubbleLeading: NSLayoutConstraint!
-    private var bubbleTrailing: NSLayoutConstraint!
+    private var bubbleLeadingToContent: NSLayoutConstraint!
+    private var bubbleTrailingToContent: NSLayoutConstraint!
+    private var bubbleTrailingToStack: NSLayoutConstraint!
+    private var bubbleLeadingToStack: NSLayoutConstraint!
+    private var contentStackLeadingToBubble: NSLayoutConstraint!
+    private var contentStackTrailingToBubble: NSLayoutConstraint!
+    
     private var textTopToBubble: NSLayoutConstraint!
     private var textTopToMedia: NSLayoutConstraint!
     private var mediaHeightConstraint: NSLayoutConstraint!
+    private var mediaAspectConstraint: NSLayoutConstraint!
+    private var bubbleMaxWidth: NSLayoutConstraint!
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -21,52 +29,95 @@ final class MessageCell: UITableViewCell {
         selectionStyle = .none
         contentView.addSubview(bubbleView)
         bubbleView.addSubview(mediaView)
-        bubbleView.addSubview(textLabel_)
-        bubbleView.addSubview(timeLabel)
+        bubbleView.addSubview(contentStack)
+        contentStack.axis = .vertical
+        contentStack.spacing = 4
+        contentStack.alignment = .leading
+        contentStack.addArrangedSubview(textLabel_)
+        contentStack.addArrangedSubview(timeLabel)
         
         textLabel_.numberOfLines = 0
         textLabel_.font = Theme.fontBody
+        textLabel_.setContentHuggingPriority(.required, for: .vertical)
         timeLabel.font = Theme.fontCaption
         timeLabel.textColor = Theme.textMuted
-        mediaView.contentMode = .scaleAspectFit
+        mediaView.contentMode = .scaleAspectFill
         mediaView.clipsToBounds = true
-        mediaView.layer.cornerRadius = Theme.radiusSm
+        mediaView.layer.cornerRadius = Theme.radius
         
         bubbleView.layer.cornerRadius = Theme.radiusLg
         bubbleView.clipsToBounds = true
         bubbleView.translatesAutoresizingMaskIntoConstraints = false
         mediaView.translatesAutoresizingMaskIntoConstraints = false
-        textLabel_.translatesAutoresizingMaskIntoConstraints = false
-        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
         
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         bubbleView.addGestureRecognizer(longPress)
         bubbleView.isUserInteractionEnabled = true
         
-        textTopToBubble = textLabel_.topAnchor.constraint(equalTo: bubbleView.topAnchor, constant: 8)
-        textTopToMedia = textLabel_.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 4)
+        textTopToBubble = contentStack.topAnchor.constraint(equalTo: bubbleView.topAnchor, constant: 8)
+        textTopToMedia = contentStack.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 4)
+        
+        bubbleLeadingToContent = bubbleView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12)
+        bubbleTrailingToContent = bubbleView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12)
+        bubbleTrailingToStack = bubbleView.trailingAnchor.constraint(equalTo: contentStack.trailingAnchor, constant: 12)
+        bubbleLeadingToStack = bubbleView.leadingAnchor.constraint(equalTo: contentStack.leadingAnchor, constant: -12)
+        contentStackLeadingToBubble = contentStack.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 12)
+        contentStackTrailingToBubble = contentStack.trailingAnchor.constraint(equalTo: bubbleView.trailingAnchor, constant: -12)
+        
+        bubbleMaxWidth = bubbleView.widthAnchor.constraint(lessThanOrEqualTo: contentView.widthAnchor, multiplier: 0.75)
         
         NSLayoutConstraint.activate([
             bubbleView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
             bubbleView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
-            bubbleView.widthAnchor.constraint(lessThanOrEqualTo: contentView.widthAnchor, multiplier: 0.75),
+            bubbleMaxWidth,
             mediaView.topAnchor.constraint(equalTo: bubbleView.topAnchor, constant: 8),
             mediaView.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 8),
-            mediaView.trailingAnchor.constraint(lessThanOrEqualTo: bubbleView.trailingAnchor, constant: -8),
-            mediaView.widthAnchor.constraint(lessThanOrEqualToConstant: 220),
-            textLabel_.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 12),
-            textLabel_.trailingAnchor.constraint(equalTo: bubbleView.trailingAnchor, constant: -12),
-            timeLabel.topAnchor.constraint(equalTo: textLabel_.bottomAnchor, constant: 4),
-            timeLabel.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 12),
-            timeLabel.trailingAnchor.constraint(equalTo: bubbleView.trailingAnchor, constant: -12),
-            timeLabel.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -8)
+            mediaView.trailingAnchor.constraint(equalTo: bubbleView.trailingAnchor, constant: -8),
+            contentStack.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -8)
         ])
         
-        bubbleLeading = bubbleView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12)
-        bubbleTrailing = bubbleView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12)
         mediaHeightConstraint = mediaView.heightAnchor.constraint(equalToConstant: 0)
+        mediaAspectConstraint = mediaView.heightAnchor.constraint(equalTo: mediaView.widthAnchor, multiplier: 1)
         mediaHeightConstraint.isActive = true
-        textTopToBubble.isActive = true
+        mediaAspectConstraint.isActive = false
+        applyTextTopConstraints(hasMedia: false)
+        applyHorizontalLayout(isMine: false)
+    }
+
+    private func applyTextTopConstraints(hasMedia: Bool) {
+        NSLayoutConstraint.deactivate([textTopToBubble, textTopToMedia])
+        if hasMedia {
+            textTopToMedia.isActive = true
+        } else {
+            textTopToBubble.isActive = true
+        }
+    }
+    
+    private func applyHorizontalLayout(isMine: Bool) {
+        NSLayoutConstraint.deactivate([
+            bubbleLeadingToContent, bubbleTrailingToContent,
+            bubbleTrailingToStack, bubbleLeadingToStack,
+            contentStackLeadingToBubble, contentStackTrailingToBubble
+        ])
+        contentStack.alignment = isMine ? .trailing : .leading
+        if isMine {
+            bubbleTrailingToContent.isActive = true
+            bubbleLeadingToStack.isActive = true
+            contentStackTrailingToBubble.isActive = true
+        } else {
+            bubbleLeadingToContent.isActive = true
+            bubbleTrailingToStack.isActive = true
+            contentStackLeadingToBubble.isActive = true
+        }
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let w = contentView.bounds.width
+        guard w > 0 else { return }
+        let maxText = max(0, w * 0.75 - 48)
+        textLabel_.preferredMaxLayoutWidth = maxText
     }
     
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -75,29 +126,49 @@ final class MessageCell: UITableViewCell {
         self.isMine = isMine
         self.onDelete = onDelete
         
-        textLabel_.text = message.text
+        switch message.type {
+        case .voice:
+            let totalSec = max(0, Int(round(message.duration ?? 0)))
+            let mins = totalSec / 60
+            let secs = totalSec % 60
+            textLabel_.text = String(format: "🎤 %d:%02d", mins, secs)
+        default:
+            textLabel_.text = message.text
+        }
         textLabel_.textColor = isMine ? .white : Theme.textPrimary
         timeLabel.text = message.dateFormatted
         bubbleView.backgroundColor = isMine ? Theme.msgSent : Theme.msgReceived
         
         mediaView.isHidden = true
+        mediaAspectConstraint.isActive = false
         mediaHeightConstraint.constant = 0
+        mediaHeightConstraint.isActive = true
         if message.type == .image, let url = URL(string: message.fullFileUrl ?? "") {
             mediaView.isHidden = false
-            mediaHeightConstraint.constant = 150
+            mediaHeightConstraint.isActive = false
+            mediaAspectConstraint.isActive = true
             mediaView.load(url: url)
         }
-        textTopToBubble.isActive = mediaView.isHidden
-        textTopToMedia.isActive = !mediaView.isHidden
-        bubbleLeading.isActive = !isMine
-        bubbleTrailing.isActive = isMine
+        let hasMedia = !mediaView.isHidden && mediaAspectConstraint.isActive
+        applyTextTopConstraints(hasMedia: hasMedia)
+        applyHorizontalLayout(isMine: isMine)
     }
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        bubbleLeadingToContent.isActive = false
+        bubbleTrailingToContent.isActive = false
+        bubbleTrailingToStack.isActive = false
+        bubbleLeadingToStack.isActive = false
+        contentStackLeadingToBubble.isActive = false
+        contentStackTrailingToBubble.isActive = false
         textLabel_.text = nil
         mediaView.isHidden = true
+        mediaAspectConstraint.isActive = false
         mediaHeightConstraint.constant = 0
+        mediaHeightConstraint.isActive = true
+        applyTextTopConstraints(hasMedia: false)
+        applyHorizontalLayout(isMine: false)
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {

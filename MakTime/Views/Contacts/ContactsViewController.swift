@@ -3,6 +3,7 @@ import Combine
 
 final class ContactsViewController: UIViewController {
     private let authService: AuthService
+    private let socketService: SocketService
     private let onSelectUser: (User) -> Void
     
     private let vm = ContactsViewModel()
@@ -13,8 +14,9 @@ final class ContactsViewController: UIViewController {
     private var searchResults: [User] = []
     private var searchQuery = ""
     
-    init(authService: AuthService, onSelectUser: @escaping (User) -> Void) {
+    init(authService: AuthService, socketService: SocketService, onSelectUser: @escaping (User) -> Void) {
         self.authService = authService
+        self.socketService = socketService
         self.onSelectUser = onSelectUser
         super.init(nibName: nil, bundle: nil)
     }
@@ -54,13 +56,19 @@ final class ContactsViewController: UIViewController {
             tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
         
+        vm.setup(socketService: socketService)
+
         vm.$contacts.receive(on: DispatchQueue.main).sink { [weak self] _ in
             self?.tableView.reloadData()
         }.store(in: &cancellables)
-        
+
+        socketService.$onlineUserIds.receive(on: DispatchQueue.main).sink { [weak self] _ in
+            self?.tableView.reloadData()
+        }.store(in: &cancellables)
+
         Task { await vm.loadContacts() }
     }
     
@@ -95,10 +103,12 @@ extension ContactsViewController: UITableViewDelegate, UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! ContactCell
         if !searchQuery.isEmpty && !searchResults.isEmpty {
             let user = searchResults[indexPath.row]
-            cell.configure(user: user, showAdd: !vm.contacts.contains { $0.id == user.id })
+            let online = socketService.isUserOnline(user.id) || user.isOnline
+            cell.configure(user: user, showAdd: !vm.contacts.contains { $0.id == user.id }, isOnline: online)
         } else {
             let user = filteredContacts[indexPath.row]
-            cell.configure(user: user, showAdd: false)
+            let online = socketService.isUserOnline(user.id) || user.isOnline
+            cell.configure(user: user, showAdd: false, isOnline: online)
         }
         return cell
     }
@@ -165,8 +175,8 @@ private final class ContactCell: UITableViewCell {
     
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
-    func configure(user: User, showAdd: Bool) {
-        avatar.configure(name: user.displayName, color: user.avatarColor, avatarUrl: user.avatarUrl, size: 44, showOnline: user.isOnline)
+    func configure(user: User, showAdd: Bool, isOnline: Bool) {
+        avatar.configure(name: user.displayName, color: user.avatarColor, avatarUrl: user.avatarUrl, size: 44, showOnline: isOnline)
         nameLabel.text = user.displayName
         usernameLabel.text = "@\(user.username)"
         addIcon.isHidden = !showAdd

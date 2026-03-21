@@ -15,35 +15,39 @@ struct MainShellView: View {
     @StateObject private var tabRouter = ChatDeepLinkRouter()
 
     var body: some View {
-        TabView(selection: $tabRouter.selectedTab) {
-            ChatsTabRepresentable(
-                authService: authService,
-                socketService: socketService,
-                callCoordinator: callCoordinator,
-                router: tabRouter
-            )
-            .tabItem { Label("Чаты", systemImage: "message.fill") }
-            .tag(0)
+        ZStack {
+            MTColor.bgPrimary.ignoresSafeArea()
+            TabView(selection: $tabRouter.selectedTab) {
+                ChatsTabRepresentable(
+                    authService: authService,
+                    socketService: socketService,
+                    callCoordinator: callCoordinator,
+                    router: tabRouter
+                )
+                .tabItem { Label("Чаты", systemImage: "message.fill") }
+                .tag(0)
 
-            FeedSwiftUIView(authService: authService)
-                .tabItem { Label("Лента", systemImage: "square.grid.2x2.fill") }
-                .tag(1)
+                FeedSwiftUIView(authService: authService)
+                    .tabItem { Label("Лента", systemImage: "square.grid.2x2.fill") }
+                    .tag(1)
 
-            ContactsTabRepresentable(
-                authService: authService,
-                router: tabRouter
-            )
-            .tabItem { Label("Контакты", systemImage: "person.2.fill") }
-            .tag(2)
+                ContactsTabRepresentable(
+                    authService: authService,
+                    socketService: socketService,
+                    router: tabRouter
+                )
+                .tabItem { Label("Контакты", systemImage: "person.2.fill") }
+                .tag(2)
 
-            SettingsTabRepresentable(authService: authService)
-                .tabItem { Label("Профиль", systemImage: "person.crop.circle.fill") }
-                .tag(3)
+                SettingsTabRepresentable(authService: authService)
+                    .tabItem { Label("Профиль", systemImage: "person.crop.circle.fill") }
+                    .tag(3)
+            }
+            .tint(MTColor.accent)
+            .toolbarBackground(MTColor.bgPrimary, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+            .preferredColorScheme(.dark)
         }
-        .tint(MTColor.accent)
-        .toolbarBackground(MTColor.bgPrimary, for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -138,11 +142,12 @@ struct ChatsTabRepresentable: UIViewControllerRepresentable {
 
 struct ContactsTabRepresentable: UIViewControllerRepresentable {
     let authService: AuthService
+    let socketService: SocketService
     @ObservedObject var router: ChatDeepLinkRouter
 
     func makeUIViewController(context: Context) -> UINavigationController {
         let nav = UINavigationController()
-        let vc = ContactsViewController(authService: authService) { [router] user in
+        let vc = ContactsViewController(authService: authService, socketService: socketService) { [router] user in
             Task { @MainActor in
                 guard let conv = try? await APIService.shared.createConversation(participantId: user.id) else { return }
                 router.selectedTab = 0

@@ -6,6 +6,8 @@ import Combine
 class SocketService: ObservableObject {
     @Published var incomingCall: IncomingCall?
     @Published var isConnected = false
+    /// Единый источник онлайна для чатов, контактов и любых экранов (обновляется из `user:status` и при загрузке с API).
+    @Published private(set) var onlineUserIds: Set<String> = []
     
     private var manager: SocketManager?
     private var socket: SocketIOClient?
@@ -54,6 +56,18 @@ class SocketService: ObservableObject {
         socket = nil
         isConnected = false
         currentToken = nil
+        onlineUserIds.removeAll()
+    }
+
+    func isUserOnline(_ userId: String) -> Bool {
+        onlineUserIds.contains(userId)
+    }
+
+    /// Подмешать флаги `user.isOnline` после ответа API (не затирает сокетные обновления для остальных id).
+    func seedOnlineFromUsers(_ users: [User]) {
+        for u in users where u.isOnline {
+            onlineUserIds.insert(u.id)
+        }
     }
     
     private func setupListeners() {
@@ -111,7 +125,15 @@ class SocketService: ObservableObject {
             guard let dict = data.first as? [String: Any],
                   let userId = dict["userId"] as? String,
                   let status = dict["status"] as? String else { return }
-            Task { @MainActor in self?.userStatusChanged.send((userId: userId, status: status)) }
+            Task { @MainActor in
+                guard let self else { return }
+                if status == "online" {
+                    self.onlineUserIds.insert(userId)
+                } else {
+                    self.onlineUserIds.remove(userId)
+                }
+                self.userStatusChanged.send((userId: userId, status: status))
+            }
         }
         
         socket.on("story:new") { [weak self] _, _ in

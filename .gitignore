@@ -21,3 +21,6 @@ Carthage/Build/
 
 # Cursor / IDE
 .cursor/
+
+# Error logs
+error.md

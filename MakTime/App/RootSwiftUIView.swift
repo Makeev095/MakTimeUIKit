@@ -10,11 +10,14 @@ struct RootSwiftUIView: View {
             if authService.isLoading && authService.token != nil {
                 splash
             } else if authService.isAuthenticated {
-                MainShellView(
-                    authService: authService,
-                    socketService: socketService,
-                    callCoordinator: callCoordinator
-                )
+                ZStack {
+                    MTColor.bgPrimary.ignoresSafeArea()
+                    MainShellView(
+                        authService: authService,
+                        socketService: socketService,
+                        callCoordinator: callCoordinator
+                    )
+                }
             } else {
                 AuthViewControllerRepresentable(authService: authService)
                     .ignoresSafeArea()

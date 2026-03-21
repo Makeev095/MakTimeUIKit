@@ -92,13 +92,14 @@ final class PostCardCell: UITableViewCell {
             captionLabel.trailingAnchor.constraint(equalTo: cardContainer.trailingAnchor, constant: -16),
             mediaView.leadingAnchor.constraint(equalTo: cardContainer.leadingAnchor, constant: 16),
             mediaView.trailingAnchor.constraint(equalTo: cardContainer.trailingAnchor, constant: -16),
-            mediaView.heightAnchor.constraint(equalToConstant: 200),
             actionsStack.leadingAnchor.constraint(equalTo: cardContainer.leadingAnchor, constant: 16),
             actionsStack.trailingAnchor.constraint(equalTo: cardContainer.trailingAnchor, constant: -16),
             actionsStack.bottomAnchor.constraint(equalTo: cardContainer.bottomAnchor, constant: -12),
             actionsStack.heightAnchor.constraint(equalToConstant: 36)
         ])
         
+        mediaHeightConstraint = mediaView.heightAnchor.constraint(equalToConstant: 0)
+        mediaHeightConstraint.isActive = true
         mediaViewTopToCaption = mediaView.topAnchor.constraint(equalTo: captionLabel.bottomAnchor, constant: 8)
         mediaViewTopToAvatar = mediaView.topAnchor.constraint(equalTo: avatar.bottomAnchor, constant: 8)
         actionsTopToMedia = actionsStack.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 8)
@@ -111,6 +112,7 @@ final class PostCardCell: UITableViewCell {
     private var actionsTopToMedia: NSLayoutConstraint!
     private var actionsTopToCaption: NSLayoutConstraint!
     private var actionsTopToAvatar: NSLayoutConstraint!
+    private var mediaHeightConstraint: NSLayoutConstraint!
     
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
@@ -133,9 +135,11 @@ final class PostCardCell: UITableViewCell {
         
         if post.type == .image, let url = URL(string: post.fullFileUrl) {
             mediaView.isHidden = false
+            mediaHeightConstraint.constant = 200
             mediaView.load(url: url)
         } else {
             mediaView.isHidden = true
+            mediaHeightConstraint.constant = 0
         }
         
         mediaViewTopToCaption.isActive = !captionLabel.isHidden
@@ -149,6 +153,7 @@ final class PostCardCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         mediaView.isHidden = true
+        mediaHeightConstraint.constant = 0
     }
     
     @objc private func likeTapped() {

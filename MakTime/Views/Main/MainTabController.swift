@@ -47,6 +47,7 @@ final class MainTabController: UITabBarController {
 
         let contactsNav = UINavigationController(rootViewController: ContactsViewController(
             authService: authService,
+            socketService: socketService,
             onSelectUser: { [weak self] user in
                 self?.openChatForUser(user)
             }

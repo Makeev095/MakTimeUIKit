@@ -40,8 +40,15 @@ final class AvatarView: UIView {
         super.layoutSubviews()
         imageView.frame = bounds
         initialsLabel.frame = bounds
-        let indSize = size * 0.3
-        onlineIndicator.frame = CGRect(x: bounds.width - indSize + 2, y: bounds.height - indSize + 2, width: indSize, height: indSize)
+        let indSize = max(10, size * 0.26)
+        let inset: CGFloat = 1.5
+        // Полностью внутри bounds — раньше +2 выносило индикатор за круг и обрезалось clipsToBounds.
+        onlineIndicator.frame = CGRect(
+            x: bounds.width - indSize - inset,
+            y: bounds.height - indSize - inset,
+            width: indSize,
+            height: indSize
+        )
         onlineIndicator.layer.cornerRadius = indSize / 2
     }
     

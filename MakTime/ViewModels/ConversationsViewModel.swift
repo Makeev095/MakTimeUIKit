@@ -1,17 +1,22 @@
 import Foundation
 import Combine
 
+extension Notification.Name {
+    /// Локальное обновление превью после отправки сообщения (если сокет не эхоит отправителю).
+    static let conversationListPreviewUpdated = Notification.Name("MakTime.conversationListPreviewUpdated")
+}
+
 @MainActor
 class ConversationsViewModel: ObservableObject {
     @Published var conversations: [Conversation] = []
     @Published var searchQuery = ""
     @Published var searchResults: [User] = []
     @Published var isLoading = false
-    @Published var onlineUsers: Set<String> = []
     
     private var cancellables = Set<AnyCancellable>()
     private var socketService: SocketService?
     private var searchDebounce: AnyCancellable?
+    private var currentUserId: String = ""
     
     var filteredConversations: [Conversation] {
         if searchQuery.isEmpty { return conversations }
@@ -26,8 +31,13 @@ class ConversationsViewModel: ObservableObject {
         conversations.reduce(0) { $0 + $1.unreadCount }
     }
     
-    func setup(socketService: SocketService) {
+    func updateCurrentUserId(_ id: String) {
+        currentUserId = id
+    }
+    
+    func setup(socketService: SocketService, currentUserId: String) {
         self.socketService = socketService
+        self.currentUserId = currentUserId
         
         searchDebounce = $searchQuery
             .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
@@ -43,17 +53,6 @@ class ConversationsViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        socketService.userStatusChanged
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] (userId, status) in
-                if status == "online" {
-                    self?.onlineUsers.insert(userId)
-                } else {
-                    self?.onlineUsers.remove(userId)
-                }
-            }
-            .store(in: &cancellables)
-        
         socketService.conversationCreated
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -64,11 +63,44 @@ class ConversationsViewModel: ObservableObject {
         socketService.messageRead
             .receive(on: DispatchQueue.main)
             .sink { [weak self] (conversationId, _) in
-                if let idx = self?.conversations.firstIndex(where: { $0.id == conversationId }) {
-                    self?.conversations[idx].unreadCount = 0
-                }
+                guard let self else { return }
+                self.setUnreadCount(conversationId: conversationId, count: 0)
             }
             .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .conversationListPreviewUpdated)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let info = note.userInfo as? [String: Any] else { return }
+                self?.applyLocalPreviewFromSend(info)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setUnreadCount(conversationId: String, count: Int) {
+        guard let idx = conversations.firstIndex(where: { $0.id == conversationId }) else { return }
+        var copy = conversations
+        copy[idx].unreadCount = count
+        conversations = copy
+    }
+    
+    private func applyLocalPreviewFromSend(_ info: [String: Any]) {
+        guard let convId = info["conversationId"] as? String,
+              let typeStr = info["lastMessageType"] as? String,
+              let timeStr = info["lastMessageTime"] as? String else { return }
+        let lastMsg = info["lastMessage"] as? String
+        guard let idx = conversations.firstIndex(where: { $0.id == convId }) else {
+            Task { await loadConversations() }
+            return
+        }
+        var copy = conversations
+        var conv = copy[idx]
+        conv.lastMessage = lastMsg
+        conv.lastMessageType = typeStr
+        conv.lastMessageTime = timeStr
+        copy.remove(at: idx)
+        copy.insert(conv, at: 0)
+        conversations = copy
     }
     
     func loadConversations() async {
@@ -78,11 +110,9 @@ class ConversationsViewModel: ObservableObject {
             conversations = convs.sorted {
                 ($0.lastMessageDate ?? .distantPast) > ($1.lastMessageDate ?? .distantPast)
             }
+            socketService?.seedOnlineFromUsers(conversations.compactMap(\.participant))
             for conv in conversations {
                 socketService?.joinConversation(conv.id)
-                if let p = conv.participant, p.isOnline {
-                    onlineUsers.insert(p.id)
-                }
             }
         } catch {}
         isLoading = false
@@ -109,20 +139,25 @@ class ConversationsViewModel: ObservableObject {
     }
     
     private func handleNewMessage(_ message: Message) {
-        if let idx = conversations.firstIndex(where: { $0.id == message.conversationId }) {
-            conversations[idx].lastMessage = message.text
-            conversations[idx].lastMessageType = message.type.rawValue
-            conversations[idx].lastMessageTime = message.createdAt
-            conversations[idx].unreadCount += 1
-            let updated = conversations[idx]
-            conversations.remove(at: idx)
-            conversations.insert(updated, at: 0)
-        } else {
+        guard let idx = conversations.firstIndex(where: { $0.id == message.conversationId }) else {
             Task { await loadConversations() }
+            return
         }
+        var copy = conversations
+        var conv = copy[idx]
+        let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        conv.lastMessage = text.isEmpty ? nil : text
+        conv.lastMessageType = message.type.rawValue
+        conv.lastMessageTime = message.createdAt
+        if message.senderId != currentUserId {
+            conv.unreadCount += 1
+        }
+        copy.remove(at: idx)
+        copy.insert(conv, at: 0)
+        conversations = copy
     }
     
     func isUserOnline(_ userId: String) -> Bool {
-        onlineUsers.contains(userId)
+        socketService?.isUserOnline(userId) ?? false
     }
 }

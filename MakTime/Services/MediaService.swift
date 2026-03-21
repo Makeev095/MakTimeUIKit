@@ -17,7 +17,7 @@ class MediaService: NSObject, ObservableObject {
 
     func startVoiceRecording() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
         try session.setActive(true)
 
         let url = FileManager.default.temporaryDirectory
@@ -30,24 +30,34 @@ class MediaService: NSObject, ObservableObject {
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
-        audioRecorder = try AVAudioRecorder(url: url, settings: settings)
-        audioRecorder?.record()
+        let recorder = try AVAudioRecorder(url: url, settings: settings)
+        guard recorder.prepareToRecord() else {
+            throw NSError(domain: "MediaService", code: 1, userInfo: [NSLocalizedDescriptionKey: "prepareToRecord failed"])
+        }
+        guard recorder.record() else {
+            throw NSError(domain: "MediaService", code: 2, userInfo: [NSLocalizedDescriptionKey: "record() failed"])
+        }
+        audioRecorder = recorder
         isRecording = true
         recordingDuration = 0
 
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.recordingDuration += 0.1
         }
+        RunLoop.main.add(timer, forMode: .common)
+        recordingTimer = timer
     }
 
     func stopVoiceRecording() -> (url: URL, duration: TimeInterval)? {
         recordingTimer?.invalidate()
         recordingTimer = nil
         audioRecorder?.stop()
+        audioRecorder = nil
         isRecording = false
         guard let url = recordingURL else { return nil }
         let duration = recordingDuration
         recordingDuration = 0
+        recordingURL = nil
         return (url: url, duration: duration)
     }
 
@@ -56,8 +66,10 @@ class MediaService: NSObject, ObservableObject {
         recordingTimer = nil
         audioRecorder?.stop()
         audioRecorder?.deleteRecording()
+        audioRecorder = nil
         isRecording = false
         recordingDuration = 0
+        recordingURL = nil
     }
 
     // MARK: - Video Note recording (AVCaptureSession)

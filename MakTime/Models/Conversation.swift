@@ -18,15 +18,16 @@ struct Conversation: Codable, Identifiable, Equatable, Hashable {
     }
     
     var lastMessagePreview: String {
-        guard let msg = lastMessage else { return "Нет сообщений" }
         switch lastMessageType {
         case "voice": return "🎤 Голосовое сообщение"
         case "image": return "📷 Фото"
         case "video": return "🎥 Видео"
         case "videoNote": return "📹 Кружок"
         case "file": return "📎 Файл"
-        default: return msg
+        default: break
         }
+        guard let msg = lastMessage, !msg.isEmpty else { return "Нет сообщений" }
+        return msg
     }
     
     var lastMessageDate: Date? {
