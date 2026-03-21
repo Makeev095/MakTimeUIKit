@@ -13,6 +13,7 @@ final class VideoCallViewController: UIViewController {
     
     let vm: VideoCallViewModel
     private var cancellables = Set<AnyCancellable>()
+    private var pipSetupDone = false
     
     private let remoteVideoView = RTCMTLVideoView()
     private let localVideoView = RTCMTLVideoView()
@@ -173,8 +174,13 @@ final class VideoCallViewController: UIViewController {
         }.store(in: &cancellables)
         
         vm.$remoteVideoTrack.receive(on: DispatchQueue.main).sink { [weak self] track in
-            guard let self = self, let track = track else { return }
-            track.add(self.remoteVideoView)
+            guard let self else { return }
+            if let track {
+                track.add(self.remoteVideoView)
+                if self.pipSetupDone {
+                    self.pipManager.updateRemoteTrack(track)
+                }
+            }
         }.store(in: &cancellables)
         
         vm.$status.receive(on: DispatchQueue.main).sink { [weak self] _ in
@@ -184,9 +190,6 @@ final class VideoCallViewController: UIViewController {
         vm.$status.receive(on: DispatchQueue.main).sink { [weak self] status in
             if status == .calling || status == .connecting {
                 self?.initPiPEarly()
-            }
-            if status == .connected, let track = self?.vm.remoteVideoTrack {
-                self?.pipManager.updateRemoteTrack(track)
             }
         }.store(in: &cancellables)
         
@@ -207,8 +210,10 @@ final class VideoCallViewController: UIViewController {
     
     
     private func initPiPEarly() {
-        // sourceView — view, отображающий видеозвонок (Apple требует именно его для PiP)
-        pipManager.setup(sourceView: view, remoteTrack: nil)
+        guard !pipSetupDone else { return }
+        pipSetupDone = true
+        // Для PiP нужен видимый source view в иерархии; картинка в окне PiP — с remote track (SampleBuffer), не с этого view
+        pipManager.setup(sourceView: view, remoteTrack: vm.remoteVideoTrack)
     }
     
     private func updateUI() {

@@ -20,6 +20,7 @@ final class CallCoordinator: ObservableObject {
     /// Текущий экран видеозвонка (полноэкранный или свёрнутый).
     private var videoCallVC: VideoCallViewController?
     private var floatingWindow: CallFloatingWindow?
+    private var floatingVideoCancellable: AnyCancellable?
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
 
     private var callTarget: CallTarget?
@@ -143,6 +144,7 @@ final class CallCoordinator: ObservableObject {
         endBackgroundTask()
         floatingWindow?.isHidden = true
         floatingWindow = nil
+        cancelFloatingSubscription()
     }
 
     private func handleCallKitEnd(uuid: UUID) {
@@ -158,6 +160,12 @@ final class CallCoordinator: ObservableObject {
         videoCallVC = nil
         floatingWindow?.isHidden = true
         floatingWindow = nil
+        cancelFloatingSubscription()
+    }
+
+    private func cancelFloatingSubscription() {
+        floatingVideoCancellable?.cancel()
+        floatingVideoCancellable = nil
     }
 
     func registerPiPNotifications() {
@@ -182,7 +190,11 @@ final class CallCoordinator: ObservableObject {
     }
 
     @objc private func willResignActive() {
-        guard callTarget != nil else { return }
+        guard callTarget != nil, let vc = videoCallVC else { return }
+        // PiP с видео имеет смысл после соединения или когда уже есть remote track
+        guard vc.vm.status == .connected || vc.vm.remoteVideoTrack != nil else { return }
+        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+
         backgroundTaskId = UIApplication.shared.beginBackgroundTask { [weak self] in
             self?.endBackgroundTask()
         }
@@ -219,23 +231,35 @@ final class CallCoordinator: ObservableObject {
             floating.onTapToRestore = { [weak self] in
                 self?.floatingWindow?.isHidden = true
                 self?.floatingWindow = nil
+                self?.cancelFloatingSubscription()
                 self?.restoreMinimizedCall()
             }
             floating.onClose = { [weak self] in
                 self?.floatingWindow?.isHidden = true
                 self?.floatingWindow = nil
+                self?.cancelFloatingSubscription()
                 self?.videoCallVC?.vm.endCall()
                 self?.videoCallVC = nil
                 self?.callTarget = nil
             }
             floating.show(in: scene)
             floatingWindow = floating
+            floatingVideoCancellable = vc.vm.$remoteVideoTrack
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] track in
+                    guard let track else { return }
+                    self?.floatingWindow?.updateRemoteTrack(track)
+                }
         }
         vc.dismiss(animated: true)
     }
 
     private func restoreMinimizedCall() {
         guard let vc = videoCallVC else { return }
+        // Если полноэкранный звонок всё ещё показан (уход на Home + PiP), не дублируем present
+        if vc.presentingViewController != nil {
+            return
+        }
         hostViewController?.present(vc, animated: true)
     }
 }

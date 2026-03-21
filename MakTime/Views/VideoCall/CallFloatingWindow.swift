@@ -6,24 +6,27 @@ import WebRTC
 final class CallFloatingWindow: UIWindow {
     private let videoView = RTCMTLVideoView()
     private let nameLabel = UILabel()
-    private let tapGesture: UITapGestureRecognizer
-    private let panGesture: UIPanGestureRecognizer
-    private var initialCenter: CGPoint = .zero
-    
+    private let tapGesture = UITapGestureRecognizer()
+    private let panGesture = UIPanGestureRecognizer()
+
+    private let container = UIView()
+    private let cardSize = CGSize(width: 120, height: 160)
+    private var panStartCenter: CGPoint = .zero
+
     var onTapToRestore: (() -> Void)?
     var onClose: (() -> Void)?
-    
-    private let size = CGSize(width: 120, height: 160)
-    
+
+    private var attachedTrack: RTCVideoTrack?
+
     init(windowScene: UIWindowScene, remoteTrack: RTCVideoTrack?) {
-        tapGesture = UITapGestureRecognizer()
-        panGesture = UIPanGestureRecognizer()
         super.init(frame: .zero)
         self.windowScene = windowScene
-        self.backgroundColor = .clear
-        self.windowLevel = .statusBar + 1
-        
-        let container = UIView()
+        backgroundColor = .clear
+        windowLevel = .statusBar + 1
+
+        rootViewController = UIViewController()
+        rootViewController?.view.backgroundColor = .clear
+
         container.backgroundColor = Theme.bgSecondary
         container.layer.cornerRadius = Theme.radiusLg
         container.layer.shadowColor = UIColor.black.cgColor
@@ -31,42 +34,35 @@ final class CallFloatingWindow: UIWindow {
         container.layer.shadowRadius = 12
         container.layer.shadowOffset = CGSize(width: 0, height: 4)
         container.clipsToBounds = false
-        container.translatesAutoresizingMaskIntoConstraints = false
-        rootViewController = UIViewController()
-        rootViewController?.view.backgroundColor = .clear
         rootViewController?.view.addSubview(container)
-        NSLayoutConstraint.activate([
-            container.trailingAnchor.constraint(equalTo: rootViewController!.view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            container.bottomAnchor.constraint(equalTo: rootViewController!.view.safeAreaLayoutGuide.bottomAnchor, constant: -100)
-        ])
-        
+
         videoView.videoContentMode = .scaleAspectFill
         videoView.clipsToBounds = true
         videoView.layer.cornerRadius = Theme.radiusLg
         videoView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(videoView)
-        
+
         nameLabel.font = Theme.fontCaption
         nameLabel.textColor = .white
         nameLabel.textAlignment = .center
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(nameLabel)
-        
+
         let closeBtn = UIButton(type: .system)
         closeBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
         closeBtn.tintColor = .white
         closeBtn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         closeBtn.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(closeBtn)
-        
+
         tapGesture.addTarget(self, action: #selector(handleTap))
         panGesture.addTarget(self, action: #selector(handlePan(_:)))
         container.addGestureRecognizer(tapGesture)
         container.addGestureRecognizer(panGesture)
-        
+
         NSLayoutConstraint.activate([
-            container.widthAnchor.constraint(equalToConstant: size.width),
-            container.heightAnchor.constraint(equalToConstant: size.height),
+            container.widthAnchor.constraint(equalToConstant: cardSize.width),
+            container.heightAnchor.constraint(equalToConstant: cardSize.height),
             videoView.topAnchor.constraint(equalTo: container.topAnchor),
             videoView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             videoView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -78,53 +74,76 @@ final class CallFloatingWindow: UIWindow {
             closeBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
             closeBtn.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
             closeBtn.widthAnchor.constraint(equalToConstant: 24),
-            closeBtn.heightAnchor.constraint(equalToConstant: 24)
+            closeBtn.heightAnchor.constraint(equalToConstant: 24),
         ])
-        
+
         if let track = remoteTrack {
             track.add(videoView)
+            attachedTrack = track
         }
     }
-    
+
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    
+
     func configure(name: String, remoteTrack: RTCVideoTrack?) {
         nameLabel.text = name
-        if let track = remoteTrack {
+        if let track = remoteTrack, track !== attachedTrack {
+            if let old = attachedTrack {
+                old.remove(videoView)
+            }
             track.add(videoView)
+            attachedTrack = track
         }
     }
-    
+
     func updateRemoteTrack(_ track: RTCVideoTrack) {
-        track.add(videoView)
+        if track !== attachedTrack {
+            attachedTrack?.remove(videoView)
+            track.add(videoView)
+            attachedTrack = track
+        }
     }
-    
+
     func show(in windowScene: UIWindowScene) {
         self.windowScene = windowScene
         frame = windowScene.coordinateSpace.bounds
         rootViewController?.view.frame = bounds
+        layoutContainerInitial()
         isHidden = false
     }
-    
+
+    private func layoutContainerInitial() {
+        guard let v = rootViewController?.view else { return }
+        v.layoutIfNeeded()
+        let safe = v.safeAreaInsets
+        let w = cardSize.width
+        let h = cardSize.height
+        let x = v.bounds.width - safe.right - 20 - w
+        let y = v.bounds.height - safe.bottom - 100 - h
+        container.frame = CGRect(x: x, y: y, width: w, height: h)
+    }
+
     @objc private func handleTap() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         onTapToRestore?()
     }
-    
+
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard let container = gesture.view else { return }
+        guard let superview = container.superview else { return }
         switch gesture.state {
         case .began:
-            initialCenter = container.center
+            panStartCenter = container.center
         case .changed:
-            let translation = gesture.translation(in: container.superview)
-            container.center = CGPoint(x: initialCenter.x + translation.x, y: initialCenter.y + translation.y)
-            gesture.setTranslation(.zero, in: container.superview)
+            let t = gesture.translation(in: superview)
+            container.center = CGPoint(x: panStartCenter.x + t.x, y: panStartCenter.y + t.y)
+        case .ended, .cancelled, .failed:
+            panStartCenter = container.center
+            gesture.setTranslation(.zero, in: superview)
         default:
             break
         }
     }
-    
+
     @objc private func closeTapped() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         onClose?()

@@ -33,6 +33,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let hosting = UIHostingController(rootView: root)
         hosting.view.backgroundColor = Theme.bgPrimary
         appDelegate.callCoordinator.hostViewController = hosting
+        appDelegate.callCoordinator.registerPiPNotifications()
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = hosting
