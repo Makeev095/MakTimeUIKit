@@ -55,7 +55,8 @@ final class CallPiPManager: NSObject, ObservableObject {
 
         let ctrl = AVPictureInPictureController(contentSource: source)
         ctrl.delegate = self
-        ctrl.canStartPictureInPictureAutomaticallyFromInline = true
+        // Иначе система может сама поднять PiP при открытии панели управления / неполном «уходе».
+        ctrl.canStartPictureInPictureAutomaticallyFromInline = false
 
         self.pipContentVC = vc
         self.sampleBufferView = bufferView

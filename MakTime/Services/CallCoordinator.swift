@@ -169,10 +169,12 @@ final class CallCoordinator: ObservableObject {
     }
 
     func registerPiPNotifications() {
+        // Только реальный уход в фон (Home / другое приложение). Панель управления / ЦУ
+        // даёт willResignActive без didEnterBackground — иначе дублируется PiP поверх полноэкранного звонка.
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(willResignActive),
-            name: UIApplication.willResignActiveNotification,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
         NotificationCenter.default.addObserver(
@@ -189,8 +191,9 @@ final class CallCoordinator: ObservableObject {
         }
     }
 
-    @objc private func willResignActive() {
+    @objc private func appDidEnterBackground() {
         guard callTarget != nil, let vc = videoCallVC else { return }
+        guard !pipManager.isPiPActive else { return }
         // PiP с видео имеет смысл после соединения или когда уже есть remote track
         guard vc.vm.status == .connected || vc.vm.remoteVideoTrack != nil else { return }
         guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
