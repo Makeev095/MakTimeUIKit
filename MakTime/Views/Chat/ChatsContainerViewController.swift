@@ -5,13 +5,13 @@ final class ChatsContainerViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService
     private let onSelectConversation: (Conversation) -> Void
-    private let onStartCall: (String, String, String) -> Void
+    private let onStartCall: (String, String, String, Bool) -> Void
     
     private let storyBar = StoryBarView()
     private let divider = UIView()
     private let conversationListVC: ConversationListViewController
     
-    init(authService: AuthService, socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String) -> Void) {
+    init(authService: AuthService, socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String, Bool) -> Void) {
         self.authService = authService
         self.socketService = socketService
         self.onSelectConversation = onSelectConversation

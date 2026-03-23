@@ -1,6 +1,7 @@
 import UIKit
 import WebRTC
 import Combine
+import Lottie
 
 final class VideoCallViewController: UIViewController {
     private let target: CallTarget
@@ -24,6 +25,12 @@ final class VideoCallViewController: UIViewController {
     private let videoBtn = UIButton(type: .system)
     private let switchCameraBtn = UIButton(type: .system)
     private let endBtn = UIButton(type: .system)
+    private let minimizeBtn = UIButton(type: .system)
+    private let ringLottie = LottieAnimationView(name: "phone_ring", bundle: .main)
+    
+    private var videoLeadingConstraint: NSLayoutConstraint?
+    private var switchLeadingConstraint: NSLayoutConstraint?
+    private var muteToEndAudioConstraint: NSLayoutConstraint?
     
     init(
         target: CallTarget,
@@ -81,6 +88,13 @@ final class VideoCallViewController: UIViewController {
         localVideoView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(localVideoView)
         
+        ringLottie.loopMode = .loop
+        ringLottie.contentMode = .scaleAspectFit
+        ringLottie.backgroundBehavior = .pauseAndRestore
+        ringLottie.translatesAutoresizingMaskIntoConstraints = false
+        ringLottie.isHidden = true
+        view.addSubview(ringLottie)
+        
         let controlsContainer = UIView()
         controlsContainer.backgroundColor = UIColor.white.withAlphaComponent(0.12)
         controlsContainer.layer.cornerRadius = Theme.radiusLg
@@ -119,12 +133,19 @@ final class VideoCallViewController: UIViewController {
         endBtn.translatesAutoresizingMaskIntoConstraints = false
         controlsContainer.addSubview(endBtn)
         
-        let minimizeBtn = UIButton(type: .system)
         minimizeBtn.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
         minimizeBtn.tintColor = .white
         minimizeBtn.addTarget(self, action: #selector(minimizeTapped), for: .touchUpInside)
         minimizeBtn.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(minimizeBtn)
+        
+        let vl = videoBtn.leadingAnchor.constraint(equalTo: muteBtn.trailingAnchor, constant: 16)
+        let sl = switchCameraBtn.leadingAnchor.constraint(equalTo: videoBtn.trailingAnchor, constant: 16)
+        let ma = muteBtn.trailingAnchor.constraint(equalTo: endBtn.leadingAnchor, constant: -24)
+        ma.isActive = false
+        videoLeadingConstraint = vl
+        switchLeadingConstraint = sl
+        muteToEndAudioConstraint = ma
         
         NSLayoutConstraint.activate([
             remoteVideoView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -143,6 +164,10 @@ final class VideoCallViewController: UIViewController {
             localVideoView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
             localVideoView.widthAnchor.constraint(equalToConstant: 110),
             localVideoView.heightAnchor.constraint(equalToConstant: 150),
+            ringLottie.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            ringLottie.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
+            ringLottie.widthAnchor.constraint(equalToConstant: 160),
+            ringLottie.heightAnchor.constraint(equalToConstant: 160),
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             controlsContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
@@ -151,11 +176,11 @@ final class VideoCallViewController: UIViewController {
             muteBtn.centerYAnchor.constraint(equalTo: controlsContainer.centerYAnchor),
             muteBtn.widthAnchor.constraint(equalToConstant: 50),
             muteBtn.heightAnchor.constraint(equalToConstant: 50),
-            videoBtn.leadingAnchor.constraint(equalTo: muteBtn.trailingAnchor, constant: 16),
+            vl,
             videoBtn.centerYAnchor.constraint(equalTo: controlsContainer.centerYAnchor),
             videoBtn.widthAnchor.constraint(equalToConstant: 50),
             videoBtn.heightAnchor.constraint(equalToConstant: 50),
-            switchCameraBtn.leadingAnchor.constraint(equalTo: videoBtn.trailingAnchor, constant: 16),
+            sl,
             switchCameraBtn.centerYAnchor.constraint(equalTo: controlsContainer.centerYAnchor),
             switchCameraBtn.widthAnchor.constraint(equalToConstant: 50),
             switchCameraBtn.heightAnchor.constraint(equalToConstant: 50),
@@ -168,6 +193,8 @@ final class VideoCallViewController: UIViewController {
             minimizeBtn.widthAnchor.constraint(equalToConstant: 44),
             minimizeBtn.heightAnchor.constraint(equalToConstant: 44)
         ])
+        
+        configureAudioVideoUI()
         
         vm.$status.receive(on: DispatchQueue.main).sink { [weak self] _ in
             self?.updateUI()
@@ -191,6 +218,13 @@ final class VideoCallViewController: UIViewController {
             if status == .calling || status == .connecting {
                 self?.initPiPEarly()
             }
+            let showRing = status == .calling || status == .connecting
+            self?.ringLottie.isHidden = !showRing
+            if showRing {
+                self?.ringLottie.play()
+            } else {
+                self?.ringLottie.stop()
+            }
         }.store(in: &cancellables)
         
         vm.$isMuted.receive(on: DispatchQueue.main).sink { [weak self] muted in
@@ -203,24 +237,41 @@ final class VideoCallViewController: UIViewController {
             self?.videoBtn.backgroundColor = off ? Theme.danger : UIColor.white.withAlphaComponent(0.2)
         }.store(in: &cancellables)
         
-        if let localTrack = vm.webRTCService.localStream {
+        if target.isVideo, let localTrack = vm.webRTCService.localStream {
             localTrack.add(localVideoView)
         }
     }
     
+    private func configureAudioVideoUI() {
+        guard !target.isVideo else { return }
+        videoLeadingConstraint?.isActive = false
+        switchLeadingConstraint?.isActive = false
+        muteToEndAudioConstraint?.isActive = true
+        videoBtn.isHidden = true
+        switchCameraBtn.isHidden = true
+        minimizeBtn.isHidden = true
+        localVideoView.isHidden = true
+        remoteVideoView.isHidden = true
+    }
     
     private func initPiPEarly() {
+        guard target.isVideo else { return }
         guard !pipSetupDone else { return }
         pipSetupDone = true
-        // Для PiP нужен видимый source view в иерархии; картинка в окне PiP — с remote track (SampleBuffer), не с этого view
         pipManager.setup(sourceView: view, remoteTrack: vm.remoteVideoTrack)
     }
     
     private func updateUI() {
         let connected = vm.status == .connected
-        remoteVideoView.isHidden = !connected || vm.remoteVideoTrack == nil
-        avatarView.isHidden = connected && vm.remoteVideoTrack != nil
-        localVideoView.isHidden = !connected
+        if target.isVideo {
+            remoteVideoView.isHidden = !connected || vm.remoteVideoTrack == nil
+            avatarView.isHidden = connected && vm.remoteVideoTrack != nil
+            localVideoView.isHidden = !connected
+        } else {
+            remoteVideoView.isHidden = true
+            localVideoView.isHidden = true
+            avatarView.isHidden = false
+        }
     }
     
     @objc private func toggleMute() {

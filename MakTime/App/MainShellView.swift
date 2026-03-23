@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 /// Маршрутизация между вкладками (например, контакт → чат).
 final class ChatDeepLinkRouter: ObservableObject {
@@ -43,6 +44,8 @@ struct MainShellView: View {
                     .tabItem { Label("Профиль", systemImage: "person.crop.circle.fill") }
                     .tag(3)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(MTColor.bgPrimary)
             .tint(MTColor.accent)
             .toolbarBackground(MTColor.bgPrimary, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
@@ -71,6 +74,8 @@ struct ChatsTabRepresentable: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UINavigationController {
         let coordinator = context.coordinator
         let nav = UINavigationController()
+        nav.view.backgroundColor = Theme.bgPrimary
+        nav.navigationBar.isTranslucent = false
         nav.navigationBar.prefersLargeTitles = false
         coordinator.navigationController = nav
 
@@ -80,8 +85,8 @@ struct ChatsTabRepresentable: UIViewControllerRepresentable {
             onSelectConversation: { conv in
                 coordinator.pushChat(conversation: conv)
             },
-            onStartCall: { userId, name, convId in
-                coordinator.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId)
+            onStartCall: { userId, name, convId, isVideo in
+                coordinator.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
             }
         )
         nav.setViewControllers([chats], animated: false)
@@ -129,8 +134,8 @@ struct ChatsTabRepresentable: UIViewControllerRepresentable {
                 conversation: conversation,
                 authService: authService,
                 socketService: socketService,
-                onStartCall: { [weak self] userId, name, convId in
-                    self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId)
+                onStartCall: { [weak self] userId, name, convId, isVideo in
+                    self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
                 }
             )
             nav.pushViewController(chatVC, animated: true)
@@ -147,6 +152,8 @@ struct ContactsTabRepresentable: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UINavigationController {
         let nav = UINavigationController()
+        nav.view.backgroundColor = Theme.bgPrimary
+        nav.navigationBar.isTranslucent = false
         let vc = ContactsViewController(authService: authService, socketService: socketService) { [router] user in
             Task { @MainActor in
                 guard let conv = try? await APIService.shared.createConversation(participantId: user.id) else { return }
@@ -168,6 +175,8 @@ struct SettingsTabRepresentable: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UINavigationController {
         let nav = UINavigationController()
+        nav.view.backgroundColor = Theme.bgPrimary
+        nav.navigationBar.isTranslucent = false
         let vc = SettingsViewController(authService: authService)
         nav.setViewControllers([vc], animated: false)
         return nav

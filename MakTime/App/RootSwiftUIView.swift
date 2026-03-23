@@ -1,4 +1,5 @@
 import SwiftUI
+import Lottie
 
 struct RootSwiftUIView: View {
     @ObservedObject var authService: AuthService
@@ -29,9 +30,10 @@ struct RootSwiftUIView: View {
     private var splash: some View {
         ZStack {
             MTColor.bgPrimary.ignoresSafeArea()
-            ProgressView()
-                .tint(MTColor.accent)
-                .scaleEffect(1.2)
+            LottieView(animation: LottieAnimation.named("loading_dots", bundle: .main))
+                .looping()
+                .resizable()
+                .frame(width: 120, height: 120)
         }
     }
 }

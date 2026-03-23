@@ -42,7 +42,8 @@ extension VoIPPushManager: PKPushRegistryDelegate {
             let call = IncomingCall(
                 from: parsed.fromUserId,
                 callerName: parsed.callerName,
-                conversationId: parsed.conversationId
+                conversationId: parsed.conversationId,
+                isVideo: parsed.isVideo
             )
             let uuid = parsed.callUUID ?? UUID()
             self.onIncomingVoIPCall?(call, uuid)

@@ -12,6 +12,8 @@ final class CallKitManager: NSObject {
     /// UUID звонка → метаданные для сигналинга
     private(set) var pendingIncoming: [UUID: IncomingCall] = [:]
     private(set) var outgoingContexts: [UUID: CallTarget] = [:]
+    /// Входящий: `CXAnswerCallAction` ждёт ICE/WebRTC, затем `fulfill(withDateConnected:)`.
+    private var pendingAnswerAction: CXAnswerCallAction?
 
     var onAnswerIncoming: ((UUID, IncomingCall) -> Void)?
     var onEndCall: ((UUID) -> Void)?
@@ -35,9 +37,12 @@ final class CallKitManager: NSObject {
     func reportIncomingCall(uuid: UUID, call: IncomingCall, completion: @escaping (Error?) -> Void) {
         pendingIncoming[uuid] = call
         let update = CXCallUpdate()
-        update.remoteHandle = CXHandle(type: .generic, value: call.from)
+        let displayHandle = call.callerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? call.from
+            : call.callerName
+        update.remoteHandle = CXHandle(type: .generic, value: displayHandle)
         update.localizedCallerName = call.callerName
-        update.hasVideo = true
+        update.hasVideo = call.isVideo
         update.supportsDTMF = false
         update.supportsHolding = false
         update.supportsGrouping = false
@@ -47,9 +52,10 @@ final class CallKitManager: NSObject {
 
     func requestStartOutgoingCall(uuid: UUID, call: CallTarget, completion: @escaping (Error?) -> Void) {
         outgoingContexts[uuid] = call
-        let handle = CXHandle(type: .generic, value: call.userId)
+        let display = call.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? call.userId : call.name
+        let handle = CXHandle(type: .generic, value: display)
         let action = CXStartCallAction(call: uuid, handle: handle)
-        action.isVideo = true
+        action.isVideo = call.isVideo
         let tx = CXTransaction(action: action)
         callController.request(tx) { error in
             Task { @MainActor in
@@ -66,11 +72,25 @@ final class CallKitManager: NSObject {
     }
 
     func reportCallEnded(uuid: UUID, reason: CXCallEndedReason = .remoteEnded) {
-        let action = CXEndCallAction(call: uuid)
-        let tx = CXTransaction(action: action)
-        callController.request(tx) { _ in }
+        if let answer = pendingAnswerAction, answer.callUUID == uuid {
+            pendingAnswerAction = nil
+            answer.fail()
+        }
+        provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
         pendingIncoming.removeValue(forKey: uuid)
         outgoingContexts.removeValue(forKey: uuid)
+    }
+
+    /// Сообщить CallKit о фактическом соединении (ICE connected/completed): исходящий — `reportOutgoingCall(connectedAt:)`, входящий — `fulfill` ответа с датой подключения.
+    func notifyMediaConnected(callKitUUID uuid: UUID) {
+        if let answer = pendingAnswerAction, answer.callUUID == uuid {
+            pendingAnswerAction = nil
+            answer.fulfill(withDateConnected: Date())
+            return
+        }
+        if outgoingContexts[uuid] != nil {
+            provider.reportOutgoingCall(with: uuid, connectedAt: Date())
+        }
     }
 
 }
@@ -80,6 +100,7 @@ extension CallKitManager: CXProviderDelegate {
         Task { @MainActor in
             self.pendingIncoming.removeAll()
             self.outgoingContexts.removeAll()
+            self.pendingAnswerAction = nil
         }
     }
 
@@ -99,13 +120,17 @@ extension CallKitManager: CXProviderDelegate {
                 action.fail()
                 return
             }
+            self.pendingAnswerAction = action
             self.onAnswerIncoming?(action.callUUID, call)
-            action.fulfill()
         }
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         Task { @MainActor in
+            if let answer = self.pendingAnswerAction, answer.callUUID == action.callUUID {
+                self.pendingAnswerAction = nil
+                answer.fail()
+            }
             self.onEndCall?(action.callUUID)
             self.pendingIncoming.removeValue(forKey: action.callUUID)
             self.outgoingContexts.removeValue(forKey: action.callUUID)
@@ -126,6 +151,12 @@ extension CallKitManager: CXProviderDelegate {
                 action.fail()
                 return
             }
+            let update = CXCallUpdate()
+            let display = target.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? target.userId : target.name
+            update.localizedCallerName = display
+            update.remoteHandle = CXHandle(type: .generic, value: display)
+            update.hasVideo = target.isVideo
+            self.provider.reportCall(with: action.callUUID, updated: update)
             self.onPerformStartOutgoing?(action.callUUID, target)
             action.fulfill(withDateStarted: Date())
         }

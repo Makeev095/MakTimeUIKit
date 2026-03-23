@@ -151,8 +151,16 @@ class SocketService: ObservableObject {
                   let from = dict["from"] as? String,
                   let name = dict["callerName"] as? String,
                   let convId = dict["conversationId"] as? String else { return }
+            let isVideo: Bool
+            if let v = dict["isVideo"] as? Bool {
+                isVideo = v
+            } else if let n = dict["isVideo"] as? NSNumber {
+                isVideo = n.boolValue
+            } else {
+                isVideo = true
+            }
             Task { @MainActor in
-                self?.incomingCall = IncomingCall(from: from, callerName: name, conversationId: convId)
+                self?.incomingCall = IncomingCall(from: from, callerName: name, conversationId: convId, isVideo: isVideo)
             }
         }
         
@@ -226,9 +234,12 @@ class SocketService: ObservableObject {
         socket?.emit("typing:stop", ["conversationId": conversationId])
     }
     
-    func initiateCall(to userId: String, conversationId: String, callerName: String) {
+    func initiateCall(to userId: String, conversationId: String, callerName: String, isVideo: Bool) {
         socket?.emit("call:initiate", [
-            "to": userId, "conversationId": conversationId, "callerName": callerName
+            "to": userId,
+            "conversationId": conversationId,
+            "callerName": callerName,
+            "isVideo": isVideo
         ])
     }
     

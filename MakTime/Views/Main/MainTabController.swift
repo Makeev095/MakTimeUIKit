@@ -35,8 +35,8 @@ final class MainTabController: UITabBarController {
             onSelectConversation: { [weak self] conv in
                 self?.openChat(conversation: conv)
             },
-            onStartCall: { [weak self] userId, name, convId in
-                self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId)
+            onStartCall: { [weak self] userId, name, convId, isVideo in
+                self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
             }
         ))
         chatsNav.tabBarItem = UITabBarItem(title: "Чаты", image: UIImage(systemName: "message.fill"), tag: 0)
@@ -66,8 +66,8 @@ final class MainTabController: UITabBarController {
             conversation: conversation,
             authService: authService,
             socketService: socketService,
-            onStartCall: { [weak self] userId, name, convId in
-                self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId)
+            onStartCall: { [weak self] userId, name, convId, isVideo in
+                self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
             }
         )
         chatsNav.pushViewController(chatVC, animated: true)

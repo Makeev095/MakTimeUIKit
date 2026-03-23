@@ -5,7 +5,7 @@ final class ConversationListViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService
     private let onSelectConversation: (Conversation) -> Void
-    private let onStartCall: (String, String, String) -> Void
+    private let onStartCall: (String, String, String, Bool) -> Void
     
     private let vm = ConversationsViewModel()
     private var cancellables = Set<AnyCancellable>()
@@ -15,7 +15,7 @@ final class ConversationListViewController: UIViewController {
     private let refreshControl = UIRefreshControl()
     private let emptyLabel = UILabel()
     
-    init(authService: AuthService, socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String) -> Void) {
+    init(authService: AuthService, socketService: SocketService, onSelectConversation: @escaping (Conversation) -> Void, onStartCall: @escaping (String, String, String, Bool) -> Void) {
         self.authService = authService
         self.socketService = socketService
         self.onSelectConversation = onSelectConversation

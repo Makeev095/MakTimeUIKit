@@ -47,6 +47,12 @@ class FeedViewModel: ObservableObject {
         isRefreshing = false
     }
 
+    /// Подгрузка при приближении к концу вертикальной ленты (последние 2 элемента).
+    func loadMoreIfNeeded(currentIndex: Int, totalCount: Int) async {
+        guard totalCount > 0, currentIndex >= totalCount - 2 else { return }
+        await loadMoreIfNeeded()
+    }
+
     /// Подгрузка при скролле (вызывать с последних ячеек).
     func loadMoreIfNeeded() async {
         guard hasMore, !isLoadingMore, !isLoading, !isRefreshing else { return }

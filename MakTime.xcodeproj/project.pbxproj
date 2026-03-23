@@ -79,6 +79,9 @@
 		F0A1B2C3D4E5F6A7B8C9D0E1 /* SkeletonPostCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F0A1B2C3D4E5F6A7B8C9D0 /* SkeletonPostCell.swift */; };
 		F94E91C4CBFAC80075C3D239 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE3A8969595FF645894EE8F /* WebRTCService.swift */; };
 		L0T1I2E3V4I5E6W7I8N9D0E1 /* LoadingLottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1F2A3B4C5D6E7F8A9B0C1 /* LoadingLottieView.swift */; };
+		BD0000000000000000000011 /* LottieHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000010 /* LottieHostView.swift */; };
+		BD0000000000000000000014 /* loading_dots.json in Resources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000012 /* loading_dots.json */; };
+		BD0000000000000000000015 /* phone_ring.json in Resources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000013 /* phone_ring.json */; };
 		S1A2M3P4L5E6B7U8F9F0E1R /* SampleBufferVideoRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1A2M3P4L5E6B7U8F9F0E2R /* SampleBufferVideoRenderer.swift */; };
 		S1A2M3P4L5E6B7U8F9F0E3R /* SampleBufferVideoCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1A2M3P4L5E6B7U8F9F0E4R /* SampleBufferVideoCallView.swift */; };
 /* End PBXBuildFile section */
@@ -138,6 +141,9 @@
 		C8D9EAF0A1B2C3D4E5F6A7B8 /* CallFloatingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFloatingWindow.swift; sourceTree = "<group>"; };
 		CC573B6648A449939B7BB03A /* ReelsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReelsViewController.swift; sourceTree = "<group>"; };
 		D0E1F2A3B4C5D6E7F8A9B0C1 /* LoadingLottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingLottieView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000010 /* LottieHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieHostView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000012 /* loading_dots.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = loading_dots.json; sourceTree = "<group>"; };
+		BD1000000000000000000013 /* phone_ring.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = phone_ring.json; sourceTree = "<group>"; };
 		D5281A93526C220F2E78C6A7 /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		D7A457364E24095F8B5D0CB5 /* SocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocketService.swift; sourceTree = "<group>"; };
 		DB31E5BF5B7D4FF1980AAEBC /* ChatsContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsContainerViewController.swift; sourceTree = "<group>"; };
@@ -188,6 +194,7 @@
 				F1A89FC01C9C62C84EA4D64D /* Theme.swift */,
 				BD1000000000000000000007 /* Theme+SwiftUI.swift */,
 				F2A3B4C5D6E7F8A9B0C1D2E3 /* AnimationHelper.swift */,
+				BD1000000000000000000010 /* LottieHostView.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -359,8 +366,18 @@
 			isa = PBXGroup;
 			children = (
 				74906BD696831E62C588D609 /* Assets.xcassets */,
+				L0TT1E00000000000000001 /* Lottie */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		L0TT1E00000000000000001 /* Lottie */ = {
+			isa = PBXGroup;
+			children = (
+				BD1000000000000000000012 /* loading_dots.json */,
+				BD1000000000000000000013 /* phone_ring.json */,
+			);
+			path = Lottie;
 			sourceTree = "<group>";
 		};
 		D206802A39B1526C49128B0B /* Main */ = {
@@ -471,6 +488,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				C820C4210E5F01C49457160A /* Assets.xcassets in Resources */,
+				BD0000000000000000000014 /* loading_dots.json in Resources */,
+				BD0000000000000000000015 /* phone_ring.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +563,7 @@
 				0BCDBE68EAD7DAD6B2A4ABCA /* StoryBarView.swift in Sources */,
 				7B3E7331E7C2750475DBC371 /* Theme.swift in Sources */,
 				E1F2A3B4C5D6E7F8A9B0C1D2 /* AnimationHelper.swift in Sources */,
+				BD0000000000000000000011 /* LottieHostView.swift in Sources */,
 				6623BC8D24410455711D9B3A /* User.swift in Sources */,
 				D248A694EC22DC1008530B7F /* VideoCallViewModel.swift in Sources */,
 				F94E91C4CBFAC80075C3D239 /* WebRTCService.swift in Sources */,

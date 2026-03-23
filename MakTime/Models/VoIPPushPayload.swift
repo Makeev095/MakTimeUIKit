@@ -7,6 +7,7 @@ struct VoIPPushPayload {
     let fromUserId: String
     let callerName: String
     let conversationId: String
+    let isVideo: Bool
 
     init?(dictionary: [AnyHashable: Any]) {
         let d = dictionary as? [String: Any] ?? [:]
@@ -21,6 +22,13 @@ struct VoIPPushPayload {
         self.fromUserId = from
         self.callerName = name
         self.conversationId = conv
+        if let v = d["isVideo"] as? Bool {
+            self.isVideo = v
+        } else if let n = d["isVideo"] as? NSNumber {
+            self.isVideo = n.boolValue
+        } else {
+            self.isVideo = true
+        }
     }
 }
 

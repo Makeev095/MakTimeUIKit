@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }()
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        Theme.applyGlobalUIKitAppearance()
         authService.tryAutoLogin()
         voipPushManager.onVoIPToken = { token in
             let hex = token.map { String(format: "%02.2hhx", $0) }.joined()

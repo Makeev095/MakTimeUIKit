@@ -36,6 +36,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         appDelegate.callCoordinator.registerPiPNotifications()
 
         let window = UIWindow(windowScene: windowScene)
+        window.backgroundColor = Theme.bgPrimary
         window.rootViewController = hosting
         window.overrideUserInterfaceStyle = .dark
         self.window = window

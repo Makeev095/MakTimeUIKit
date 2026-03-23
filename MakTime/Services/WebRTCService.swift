@@ -26,12 +26,14 @@ class WebRTCService: NSObject, @unchecked Sendable {
     private var videoCapturer: RTCCameraVideoCapturer?
     private var localVideoSource: RTCVideoSource?
     private var isFrontCamera = true
+    private var audioOnly = false
     
     var localStream: RTCVideoTrack? { localVideoTrack }
     
     // MARK: - Setup
     
-    func setup() {
+    func setup(audioOnly: Bool = false) {
+        self.audioOnly = audioOnly
         let config = RTCConfiguration()
         config.iceServers = [
             RTCIceServer(urlStrings: AppConfig.stunServers),
@@ -56,18 +58,18 @@ class WebRTCService: NSObject, @unchecked Sendable {
         
         peerConnection = Self.factory.peerConnection(with: config, constraints: constraints, delegate: self)
         
-        setupLocalMedia()
+        setupLocalMedia(audioOnly: audioOnly)
     }
     
-    private func setupLocalMedia() {
-        // Audio
+    private func setupLocalMedia(audioOnly: Bool) {
         let audioConstraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
         let audioSource = Self.factory.audioSource(with: audioConstraints)
         localAudioTrack = Self.factory.audioTrack(with: audioSource, trackId: "audio0")
         localAudioTrack?.isEnabled = true
         peerConnection?.add(localAudioTrack!, streamIds: ["stream0"])
         
-        // Video
+        guard !audioOnly else { return }
+        
         localVideoSource = Self.factory.videoSource()
         localVideoTrack = Self.factory.videoTrack(with: localVideoSource!, trackId: "video0")
         localVideoTrack?.isEnabled = true
@@ -116,6 +118,7 @@ class WebRTCService: NSObject, @unchecked Sendable {
     }
 
     func switchCamera() {
+        guard localVideoTrack != nil else { return }
         isFrontCamera.toggle()
         videoCapturer?.stopCapture()
         startCapture()
@@ -124,10 +127,11 @@ class WebRTCService: NSObject, @unchecked Sendable {
     // MARK: - Offer/Answer
     
     func createOffer() async throws -> RTCSessionDescription {
+        let wantVideo = !audioOnly
         let constraints = RTCMediaConstraints(
             mandatoryConstraints: [
                 "OfferToReceiveAudio": "true",
-                "OfferToReceiveVideo": "true"
+                "OfferToReceiveVideo": wantVideo ? "true" : "false"
             ],
             optionalConstraints: nil
         )
@@ -154,10 +158,11 @@ class WebRTCService: NSObject, @unchecked Sendable {
     }
     
     func createAnswer() async throws -> RTCSessionDescription {
+        let wantVideo = !audioOnly
         let constraints = RTCMediaConstraints(
             mandatoryConstraints: [
                 "OfferToReceiveAudio": "true",
-                "OfferToReceiveVideo": "true"
+                "OfferToReceiveVideo": wantVideo ? "true" : "false"
             ],
             optionalConstraints: nil
         )
@@ -210,6 +215,7 @@ class WebRTCService: NSObject, @unchecked Sendable {
     }
     
     func setVideoEnabled(_ enabled: Bool) {
+        guard localVideoTrack != nil else { return }
         localVideoTrack?.isEnabled = enabled
         if !enabled {
             videoCapturer?.stopCapture()

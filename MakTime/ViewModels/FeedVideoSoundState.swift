@@ -2,5 +2,6 @@ import SwiftUI
 
 @MainActor
 final class FeedVideoSoundState: ObservableObject {
-    @Published var soundOn: Bool = false
+    /// По умолчанию со звуком (как в Reels).
+    @Published var soundOn: Bool = true
 }

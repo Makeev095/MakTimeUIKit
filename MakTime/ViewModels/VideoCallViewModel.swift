@@ -54,7 +54,7 @@ class VideoCallViewModel: ObservableObject {
     func setup(socketService: SocketService, callerName: String) {
         self.socketService = socketService
         webRTCService.delegate = self
-        webRTCService.setup()
+        webRTCService.setup(audioOnly: !target.isVideo)
         configureAudioSession(speaker: true)
         
         socketService.callAccepted
@@ -121,7 +121,12 @@ class VideoCallViewModel: ObservableObject {
             .store(in: &cancellables)
         
         if target.isInitiator {
-            socketService.initiateCall(to: target.userId, conversationId: target.conversationId, callerName: callerName)
+            socketService.initiateCall(
+                to: target.userId,
+                conversationId: target.conversationId,
+                callerName: callerName,
+                isVideo: target.isVideo
+            )
             startRingtone()
             callTimeout = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
                 Task { @MainActor in
@@ -246,10 +251,22 @@ class VideoCallViewModel: ObservableObject {
     private func configureAudioSession(speaker: Bool) {
         let ctx = AVAudioSession.sharedInstance()
         let options: AVAudioSession.CategoryOptions = speaker
-            ? [.defaultToSpeaker, .allowBluetooth]
-            : [.allowBluetooth]
+            ? [.defaultToSpeaker, .allowBluetoothHFP]
+            : [.allowBluetoothHFP]
         try? ctx.setCategory(.playAndRecord, mode: .voiceChat, options: options)
         try? ctx.setActive(true)
+    }
+
+    /// После соединения: громкая связь через динамик (важно для видеозвонков у уха).
+    private func routeCallAudioToSpeakerIfNeeded() {
+        guard target.isVideo else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self, self.status == .connected else { return }
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP])
+            try? session.setActive(true)
+            try? session.overrideOutputAudioPort(.speaker)
+        }
     }
 }
 
@@ -268,6 +285,7 @@ extension VideoCallViewModel: WebRTCServiceDelegate {
                     self.didReportConnected = true
                     self.onConnected?()
                 }
+                self.routeCallAudioToSpeakerIfNeeded()
                 if self.durationTimer == nil {
                     self.durationTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
                         Task { @MainActor in self?.duration += 1 }

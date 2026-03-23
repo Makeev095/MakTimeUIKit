@@ -6,7 +6,7 @@ final class ChatViewController: UIViewController {
     private let conversation: Conversation
     private let authService: AuthService
     private let socketService: SocketService
-    private let onStartCall: (String, String, String) -> Void
+    private let onStartCall: (String, String, String, Bool) -> Void
     
     private let vm: ChatViewModel
     private var cancellables = Set<AnyCancellable>()
@@ -16,7 +16,7 @@ final class ChatViewController: UIViewController {
     private let typingLabel = UILabel()
     private var chatInputBottomConstraint: NSLayoutConstraint?
     
-    init(conversation: Conversation, authService: AuthService, socketService: SocketService, onStartCall: @escaping (String, String, String) -> Void) {
+    init(conversation: Conversation, authService: AuthService, socketService: SocketService, onStartCall: @escaping (String, String, String, Bool) -> Void) {
         self.conversation = conversation
         self.authService = authService
         self.socketService = socketService
@@ -32,13 +32,23 @@ final class ChatViewController: UIViewController {
         view.backgroundColor = Theme.bgPrimary
         title = conversation.participant?.displayName ?? "Чат"
         
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let videoItem = UIBarButtonItem(
             image: UIImage(systemName: "video.fill"),
             style: .plain,
             target: self,
             action: #selector(videoCallTapped)
         )
-        navigationItem.rightBarButtonItem?.tintColor = Theme.accent
+        let audioItem = UIBarButtonItem(
+            image: UIImage(systemName: "phone.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(audioCallTapped)
+        )
+        videoItem.tintColor = Theme.accent
+        audioItem.tintColor = Theme.accent
+        navigationItem.rightBarButtonItems = [videoItem, audioItem]
+        navigationController?.navigationBar.isTranslucent = false
+        navigationController?.view.backgroundColor = Theme.bgPrimary
         
         tableView.delegate = self
         tableView.dataSource = self
@@ -46,7 +56,7 @@ final class ChatViewController: UIViewController {
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .interactive
-        tableView.contentInsetAdjustmentBehavior = .automatic
+        tableView.contentInsetAdjustmentBehavior = .never
         tableView.estimatedRowHeight = 360
         tableView.rowHeight = UITableView.automaticDimension
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -73,20 +83,23 @@ final class ChatViewController: UIViewController {
             self?.vm.stopVoiceRecording()
         }
         chatInput.translatesAutoresizingMaskIntoConstraints = false
+        chatInput.insetsLayoutMarginsFromSafeArea = false
         view.addSubview(chatInput)
         
-        chatInputBottomConstraint = chatInput.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+        let inputBottom = chatInput.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+        chatInputBottomConstraint = inputBottom
+        
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: typingLabel.topAnchor),
             typingLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
             typingLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             typingLabel.bottomAnchor.constraint(equalTo: chatInput.topAnchor, constant: -4),
-            chatInput.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            chatInput.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-            chatInputBottomConstraint!
+            chatInput.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chatInput.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            inputBottom
         ])
         
         vm.setup(socketService: socketService, userId: authService.user?.id ?? "")
@@ -99,9 +112,40 @@ final class ChatViewController: UIViewController {
         vm.$isTyping.map { !$0 }.assign(to: \.isHidden, on: typingLabel).store(in: &cancellables)
         
         Task { await vm.loadMessages() }
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardFrameChanged),
+            name: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func keyboardFrameChanged(_ notification: Notification) {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval
+        else { return }
+        let keyboardFrameInView = view.convert(frame, from: nil)
+        let safeBottomY = view.bounds.maxY - view.safeAreaInsets.bottom
+        let keyboardTop = keyboardFrameInView.minY
+        let bottomInset: CGFloat
+        if keyboardTop >= view.bounds.maxY - 0.5 {
+            bottomInset = 0
+        } else {
+            bottomInset = keyboardTop - safeBottomY
+        }
+        chatInputBottomConstraint?.constant = bottomInset
+        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? UIView.AnimationOptions.curveEaseInOut.rawValue
+        UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16)) {
+            self.view.layoutIfNeeded()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.scrollToBottom()
+        }
     }
     
     private func scrollToBottom() {
@@ -112,31 +156,12 @@ final class ChatViewController: UIViewController {
     
     @objc private func videoCallTapped() {
         guard let p = conversation.participant else { return }
-        onStartCall(p.id, p.displayName, conversation.id)
+        onStartCall(p.id, p.displayName, conversation.id, true)
     }
-    
-    @objc private func keyboardWillShow(_ n: Notification) {
-        guard let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-              let duration = n.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval else { return }
-        let keyboardHeight: CGFloat
-        let keyboardFrameInView = view.convert(frame, from: nil)
-        keyboardHeight = max(0, view.bounds.maxY - keyboardFrameInView.minY)
-        chatInputBottomConstraint?.constant = -keyboardHeight
-        let curve = n.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? UIView.AnimationOptions.curveEaseInOut.rawValue
-        UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16)) {
-            self.view.layoutIfNeeded()
-        } completion: { _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.scrollToBottom() }
-        }
-    }
-    
-    @objc private func keyboardWillHide(_ n: Notification) {
-        guard let duration = n.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval else { return }
-        chatInputBottomConstraint?.constant = 0
-        let curve = n.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? UIView.AnimationOptions.curveEaseInOut.rawValue
-        UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16)) {
-            self.view.layoutIfNeeded()
-        }
+
+    @objc private func audioCallTapped() {
+        guard let p = conversation.participant else { return }
+        onStartCall(p.id, p.displayName, conversation.id, false)
     }
     
     private func showPhotoPicker() {

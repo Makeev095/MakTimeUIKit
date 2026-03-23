@@ -22,7 +22,7 @@ final class LoadingLottieView: UIView {
             fallbackSpinner.centerXAnchor.constraint(equalTo: centerXAnchor),
             fallbackSpinner.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-        if let anim = LottieAnimation.named("loading") {
+        if let anim = LottieAnimation.named("loading_dots", bundle: .main) {
             animationView.animation = anim
             animationView.loopMode = .loop
             animationView.isHidden = false

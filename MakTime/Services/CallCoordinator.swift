@@ -86,9 +86,9 @@ final class CallCoordinator: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func startOutgoingCall(userId: String, name: String, conversationId: String) {
+    func startOutgoingCall(userId: String, name: String, conversationId: String, isVideo: Bool = true) {
         guard callTarget == nil, videoCallVC == nil else { return }
-        let target = CallTarget(userId: userId, name: name, conversationId: conversationId, isInitiator: true)
+        let target = CallTarget(userId: userId, name: name, conversationId: conversationId, isInitiator: true, isVideo: isVideo)
         callTarget = target
         let uuid = UUID()
         activeCallKitUUID = uuid
@@ -107,7 +107,8 @@ final class CallCoordinator: ObservableObject {
             userId: incoming.from,
             name: incoming.callerName,
             conversationId: incoming.conversationId,
-            isInitiator: false
+            isInitiator: false,
+            isVideo: incoming.isVideo
         )
         socketService.acceptCall(to: incoming.from)
         callKit.removePendingIncoming(uuid: uuid)
@@ -129,7 +130,9 @@ final class CallCoordinator: ObservableObject {
             onToggleMinimize: { [weak self] vcc in
                 self?.minimizeCall(vc: vcc)
             },
-            onWebRTCConnected: nil
+            onWebRTCConnected: { [weak self] in
+                self?.callKit.notifyMediaConnected(callKitUUID: callKitUUID)
+            }
         )
         vc.modalPresentationStyle = .fullScreen
         host.present(vc, animated: true)
@@ -193,6 +196,7 @@ final class CallCoordinator: ObservableObject {
 
     @objc private func appDidEnterBackground() {
         guard callTarget != nil, let vc = videoCallVC else { return }
+        guard vc.vm.target.isVideo else { return }
         guard !pipManager.isPiPActive else { return }
         // PiP с видео имеет смысл после соединения или когда уже есть remote track
         guard vc.vm.status == .connected || vc.vm.remoteVideoTrack != nil else { return }
@@ -223,6 +227,7 @@ final class CallCoordinator: ObservableObject {
 
     private func minimizeCall(vc: VideoCallViewController) {
         videoCallVC = vc
+        guard vc.vm.target.isVideo else { return }
         if AVPictureInPictureController.isPictureInPictureSupported() {
             pipManager.startPiP()
         } else if let scene = vc.view.window?.windowScene {

@@ -75,6 +75,43 @@ struct Theme {
     static func customFont(name: String, size: CGFloat) -> UIFont? {
         UIFont(name: name, size: size)
     }
+
+    /// Единый фон навбара/таббара/тулбара. Без глобального UITableView — иначе появляются лишние полосы.
+    static func applyGlobalUIKitAppearance() {
+        let bg = Theme.bgPrimary
+
+        let navBar = UINavigationBarAppearance()
+        navBar.configureWithOpaqueBackground()
+        navBar.backgroundColor = bg
+        navBar.titleTextAttributes = [.foregroundColor: Theme.textPrimary]
+        navBar.largeTitleTextAttributes = [.foregroundColor: Theme.textPrimary]
+        let navigationBar = UINavigationBar.appearance()
+        navigationBar.standardAppearance = navBar
+        navigationBar.scrollEdgeAppearance = navBar
+        navigationBar.compactAppearance = navBar
+        navigationBar.compactScrollEdgeAppearance = navBar
+        navigationBar.tintColor = Theme.accent
+
+        let tabBarApp = UITabBarAppearance()
+        tabBarApp.configureWithOpaqueBackground()
+        tabBarApp.backgroundColor = bg
+        tabBarApp.shadowColor = .clear
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance = tabBarApp
+        tabBar.scrollEdgeAppearance = tabBarApp
+        tabBar.tintColor = Theme.accent
+        tabBar.unselectedItemTintColor = Theme.textSecondary
+        tabBar.isTranslucent = false
+
+        let toolbarApp = UIToolbarAppearance()
+        toolbarApp.configureWithOpaqueBackground()
+        toolbarApp.backgroundColor = bg
+        let toolbar = UIToolbar.appearance()
+        toolbar.standardAppearance = toolbarApp
+        toolbar.compactAppearance = toolbarApp
+        toolbar.scrollEdgeAppearance = toolbarApp
+        toolbar.tintColor = Theme.accent
+    }
 }
 
 // MARK: - UIColor init from hex
