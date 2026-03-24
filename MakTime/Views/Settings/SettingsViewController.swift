@@ -2,6 +2,9 @@ import UIKit
 import Combine
 import PhotosUI
 
+// MARK: - UI / layout — профиль / настройки
+// UITableView с секциями; в файле же — `ProfileCell` (аватар, имя, кнопка смены фото).
+
 private final class ProfileCell: UITableViewCell {
     private let avatar = AvatarView()
     private let nameLabel = UILabel()

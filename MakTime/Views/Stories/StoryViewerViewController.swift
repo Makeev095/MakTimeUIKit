@@ -2,6 +2,9 @@ import UIKit
 import AVKit
 import AVFoundation
 
+// MARK: - UI / layout — просмотр сторис (полноэкранное видео)
+// Переключение между пользователями/сторис, прогресс, закрытие.
+
 final class StoryViewerViewController: UIViewController {
     private let storyUsers: [StoryUser]
     private var currentUserIdx: Int

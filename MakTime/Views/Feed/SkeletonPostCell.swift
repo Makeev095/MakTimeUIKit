@@ -1,6 +1,9 @@
 import UIKit
 import SkeletonView
 
+// MARK: - UI / layout — плейсхолдер карточки при загрузке
+// SkeletonView-анимация; геометрия должна совпадать с PostCardCell по сетке.
+
 final class SkeletonPostCell: UITableViewCell {
     private let cardContainer = UIView()
     private let avatarView = UIView()

@@ -1,6 +1,9 @@
 import UIKit
 import PhotosUI
 
+// MARK: - UI / layout — публикация сторис (фото + текст)
+// Превью, поле текста, состояния загрузки/ошибки.
+
 final class StoryUploadViewController: UIViewController {
     private let onClose: () -> Void
     private let onPublished: () -> Void

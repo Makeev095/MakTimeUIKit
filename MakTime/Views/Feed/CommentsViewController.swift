@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — экран комментариев к посту
+// Таблица комментариев + нижняя панель ввода; привязка к клавиатуре (как в чате).
+
 final class CommentsViewController: UIViewController {
     private let post: Post
     private var comments: [PostComment] = []

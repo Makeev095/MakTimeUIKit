@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — список диалогов
+// SearchBarView сверху, UITableView, pull-to-refresh; высота ячеек и отступы списка.
+
 final class ConversationListViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService

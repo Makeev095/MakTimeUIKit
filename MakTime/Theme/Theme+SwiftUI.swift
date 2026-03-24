@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+// MARK: - UI / layout — дизайн-токены и примитивы (SwiftUI)
+// MTColor / MTSpacing / MTFont — зеркало Theme.swift для SwiftUI-экранов.
+// MTAvatarView, MTPrimaryButtonStyle — переиспользуемые визуальные блоки (размеры, скругления кнопок).
+
 /// Токены дизайн-системы для SwiftUI (согласованы с [Theme](Theme.swift)).
 enum MTColor {
     static let bgPrimary = Color(uiColor: Theme.bgPrimary)
@@ -61,5 +65,20 @@ struct MTPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(MTColor.accent.opacity(configuration.isPressed ? 0.85 : 1))
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg, style: .continuous))
+    }
+}
+
+// MARK: - Общие модификаторы SwiftUI (экраны авторизации, формы)
+extension View {
+    /// Фон карточки с лёгкой обводкой — как «стекло» поверх bgPrimary.
+    func mtGlassCard(cornerRadius: CGFloat = CGFloat(Theme.radius)) -> some View {
+        self
+            .padding(MTSpacing.md)
+            .background(Color.white.opacity(0.03))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(MTColor.border.opacity(0.5), lineWidth: 1)
+            )
     }
 }

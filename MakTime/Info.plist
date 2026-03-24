@@ -83,5 +83,9 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>PlusJakartaSans-Variable.ttf</string>
+	</array>
 </dict>
 </plist>

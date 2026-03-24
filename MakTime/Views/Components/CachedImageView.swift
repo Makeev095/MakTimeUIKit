@@ -1,6 +1,9 @@
 import UIKit
 import Kingfisher
 
+// MARK: - UI / layout — загрузка картинок (Kingfisher)
+// Обёртка над UIImageView для URL; contentMode задаётся снаружи в ячейках.
+
 final class CachedImageView: UIImageView {
     
     func load(url: URL?) {

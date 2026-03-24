@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — список контактов
+// Поиск, UITableView, ячейки пользователей; переход в чат через роутер.
+
 final class ContactsViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService

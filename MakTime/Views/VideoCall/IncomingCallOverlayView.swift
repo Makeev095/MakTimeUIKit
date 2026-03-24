@@ -2,6 +2,9 @@ import UIKit
 import AudioToolbox
 import AVFoundation
 
+// MARK: - UI / layout — входящий звонок (fullscreen overlay)
+// Имя, кнопки принять/отклонить, визуальный стиль поверх текущего экрана.
+
 final class IncomingCallOverlayView: UIView {
     private let call: IncomingCall
     private let onAccept: () -> Void

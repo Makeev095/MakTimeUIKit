@@ -2,6 +2,9 @@ import UIKit
 import AVKit
 import AVFoundation
 
+// MARK: - UI / layout — полноэкранные рилсы (UIKit)
+// Вертикальный paging видео, оверлеи лайк/комментарий; альтернатива/дополнение к FeedSwiftUIView.
+
 final class ReelsViewController: UIViewController {
     private let posts: [Post]
     private var currentIndex: Int

@@ -1,6 +1,8 @@
 import UIKit
-import SwiftUI
 import Combine
+
+// MARK: - UI / layout — окно и корень UIKit
+// Корень — `RootViewController` (splash / авторизация / `MainTabController`). Фон `Theme.bgPrimary`.
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -25,19 +27,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
             .store(in: &cancellables)
 
-        let root = RootSwiftUIView(
+        let root = RootViewController(
             authService: authService,
             socketService: socketService,
             callCoordinator: appDelegate.callCoordinator
         )
-        let hosting = UIHostingController(rootView: root)
-        hosting.view.backgroundColor = Theme.bgPrimary
-        appDelegate.callCoordinator.hostViewController = hosting
+        root.view.backgroundColor = Theme.bgPrimary
         appDelegate.callCoordinator.registerPiPNotifications()
 
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = Theme.bgPrimary
-        window.rootViewController = hosting
+        window.rootViewController = root
         window.overrideUserInterfaceStyle = .dark
         self.window = window
         window.makeKeyAndVisible()

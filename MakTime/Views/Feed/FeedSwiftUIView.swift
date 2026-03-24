@@ -1,8 +1,12 @@
 import SwiftUI
+import Combine
 import UIKit
 import AVKit
 import AVFoundation
 import Kingfisher
+
+// MARK: - UI / layout — лента (SwiftUI, основной экран «Лента»)
+// Полноэкранные карточки, оверлеи действий, навигация, модалки создания поста и комментариев.
 
 /// Вертикальная лента в стиле Reels: полный экран, свайп между постами.
 struct FeedSwiftUIView: View {
@@ -82,6 +86,14 @@ struct FeedSwiftUIView: View {
         }
         .onAppear {
             if !vm.posts.isEmpty {
+                syncActiveVideo(forIndex: currentIndex)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .makTimeFeedTabVisibility)) { note in
+            let visible = note.userInfo?["visible"] as? Bool ?? false
+            if !visible {
+                activeVideoPostId = nil
+            } else if !vm.posts.isEmpty {
                 syncActiveVideo(forIndex: currentIndex)
             }
         }

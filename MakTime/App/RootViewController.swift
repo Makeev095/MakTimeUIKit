@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — корень UIKit (если не используете только SwiftUI)
+// Переключение дочерних VC (splash / MainTabController / Auth); фон view — Theme.bgPrimary.
+
 final class RootViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService

@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — анимации и тактильный отклик
+// Длительности из Theme; spring, лёгкое scale на тапах, haptic — для полировки UI, не для структуры экрана.
+
 /// Хелпер для spring-анимаций и haptic feedback.
 enum AnimationHelper {
     

@@ -1,14 +1,24 @@
 import SwiftUI
-import Combine
 import UIKit
+
+// MARK: - UI / layout — главная оболочка приложения (SwiftUI TabView)
+// Полноэкранный фон (ZStack + ignoresSafeArea), табы. Экраны вкладок — SwiftUI; чат внутри вкладки использует ChatViewController через bridge.
 
 /// Маршрутизация между вкладками (например, контакт → чат).
 final class ChatDeepLinkRouter: ObservableObject {
+    /// Устаревший путь: установите бесшовно из ObjC-координатора; SwiftUI-вкладка читает и открывает чат.
     @Published var pendingConversation: Conversation?
     @Published var selectedTab: Int = 0
+    @Published var chatsPath = NavigationPath()
+
+    func appendChat(_ c: Conversation) {
+        var p = chatsPath
+        p.append(c)
+        chatsPath = p
+    }
 }
 
-/// Главный интерфейс на SwiftUI: табы + UIKit там, где нужны существующие экраны.
+/// Главный интерфейс на SwiftUI: табы + существующие сервисы без смены логики.
 struct MainShellView: View {
     @ObservedObject var authService: AuthService
     @ObservedObject var socketService: SocketService
@@ -19,7 +29,7 @@ struct MainShellView: View {
         ZStack {
             MTColor.bgPrimary.ignoresSafeArea()
             TabView(selection: $tabRouter.selectedTab) {
-                ChatsTabRepresentable(
+                ChatsRootSwiftUIView(
                     authService: authService,
                     socketService: socketService,
                     callCoordinator: callCoordinator,
@@ -32,7 +42,7 @@ struct MainShellView: View {
                     .tabItem { Label("Лента", systemImage: "square.grid.2x2.fill") }
                     .tag(1)
 
-                ContactsTabRepresentable(
+                ContactsSwiftUIView(
                     authService: authService,
                     socketService: socketService,
                     router: tabRouter
@@ -40,7 +50,7 @@ struct MainShellView: View {
                 .tabItem { Label("Контакты", systemImage: "person.2.fill") }
                 .tag(2)
 
-                SettingsTabRepresentable(authService: authService)
+                SettingsSwiftUIView(authService: authService)
                     .tabItem { Label("Профиль", systemImage: "person.crop.circle.fill") }
                     .tag(3)
             }
@@ -52,135 +62,4 @@ struct MainShellView: View {
             .preferredColorScheme(.dark)
         }
     }
-}
-
-// MARK: - Chats
-
-struct ChatsTabRepresentable: UIViewControllerRepresentable {
-    let authService: AuthService
-    let socketService: SocketService
-    @ObservedObject var callCoordinator: CallCoordinator
-    @ObservedObject var router: ChatDeepLinkRouter
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            authService: authService,
-            socketService: socketService,
-            callCoordinator: callCoordinator,
-            router: router
-        )
-    }
-
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let coordinator = context.coordinator
-        let nav = UINavigationController()
-        nav.view.backgroundColor = Theme.bgPrimary
-        nav.navigationBar.isTranslucent = false
-        nav.navigationBar.prefersLargeTitles = false
-        coordinator.navigationController = nav
-
-        let chats = ChatsContainerViewController(
-            authService: authService,
-            socketService: socketService,
-            onSelectConversation: { conv in
-                coordinator.pushChat(conversation: conv)
-            },
-            onStartCall: { userId, name, convId, isVideo in
-                coordinator.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
-            }
-        )
-        nav.setViewControllers([chats], animated: false)
-        coordinator.startObserving()
-        return nav
-    }
-
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
-
-    final class Coordinator: NSObject {
-        let authService: AuthService
-        let socketService: SocketService
-        let callCoordinator: CallCoordinator
-        let router: ChatDeepLinkRouter
-        weak var navigationController: UINavigationController?
-        private var cancellables = Set<AnyCancellable>()
-
-        init(
-            authService: AuthService,
-            socketService: SocketService,
-            callCoordinator: CallCoordinator,
-            router: ChatDeepLinkRouter
-        ) {
-            self.authService = authService
-            self.socketService = socketService
-            self.callCoordinator = callCoordinator
-            self.router = router
-        }
-
-        func startObserving() {
-            router.$pendingConversation
-                .compactMap { $0 }
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] conv in
-                    guard let self else { return }
-                    self.pushChat(conversation: conv)
-                    self.router.pendingConversation = nil
-                }
-                .store(in: &cancellables)
-        }
-
-        func pushChat(conversation: Conversation) {
-            guard let nav = navigationController else { return }
-            let chatVC = ChatViewController(
-                conversation: conversation,
-                authService: authService,
-                socketService: socketService,
-                onStartCall: { [weak self] userId, name, convId, isVideo in
-                    self?.callCoordinator.startOutgoingCall(userId: userId, name: name, conversationId: convId, isVideo: isVideo)
-                }
-            )
-            nav.pushViewController(chatVC, animated: true)
-        }
-    }
-}
-
-// MARK: - Contacts
-
-struct ContactsTabRepresentable: UIViewControllerRepresentable {
-    let authService: AuthService
-    let socketService: SocketService
-    @ObservedObject var router: ChatDeepLinkRouter
-
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let nav = UINavigationController()
-        nav.view.backgroundColor = Theme.bgPrimary
-        nav.navigationBar.isTranslucent = false
-        let vc = ContactsViewController(authService: authService, socketService: socketService) { [router] user in
-            Task { @MainActor in
-                guard let conv = try? await APIService.shared.createConversation(participantId: user.id) else { return }
-                router.selectedTab = 0
-                router.pendingConversation = conv
-            }
-        }
-        nav.setViewControllers([vc], animated: false)
-        return nav
-    }
-
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
-}
-
-// MARK: - Settings / профиль
-
-struct SettingsTabRepresentable: UIViewControllerRepresentable {
-    let authService: AuthService
-
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let nav = UINavigationController()
-        nav.view.backgroundColor = Theme.bgPrimary
-        nav.navigationBar.isTranslucent = false
-        let vc = SettingsViewController(authService: authService)
-        nav.setViewControllers([vc], animated: false)
-        return nav
-    }
-
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
 }

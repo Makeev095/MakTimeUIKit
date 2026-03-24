@@ -2,6 +2,9 @@ import UIKit
 import Combine
 import SnapKit
 
+// MARK: - UI / layout — нижняя панель ввода в чате
+// Высота intrinsicContentSize, кнопки фото/микрофона/отправки, поле UITextView, верхняя линия-разделитель.
+
 final class ChatInputBar: UIView {
     var onSend: ((String) -> Void)?
     var onPhoto: (() -> Void)?
@@ -15,6 +18,10 @@ final class ChatInputBar: UIView {
     private let photoButton = UIButton(type: .system)
     private let voiceButton = UIButton(type: .system)
     private let sendButton = UIButton(type: .system)
+
+    private var photoBottomToSafeArea: NSLayoutConstraint!
+    private var photoBottomToBarBottom: NSLayoutConstraint!
+    private var keyboardOpen = false
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -25,6 +32,11 @@ final class ChatInputBar: UIView {
     
     private func setup() {
         backgroundColor = Theme.bgSecondary
+        clipsToBounds = true
+        layer.cornerRadius = Theme.radiusLg
+        layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        layer.cornerCurve = .continuous
+
         let topBorder = UIView()
         topBorder.backgroundColor = Theme.glassBorder
         addSubview(topBorder)
@@ -43,6 +55,8 @@ final class ChatInputBar: UIView {
         textView.textColor = Theme.textPrimary
         textView.font = Theme.fontBody
         textView.layer.cornerRadius = Theme.radiusLg
+        textView.layer.cornerCurve = .continuous
+        textView.clipsToBounds = true
         textView.layer.borderWidth = 0
         textView.textContainerInset = UIEdgeInsets(top: 9, left: 14, bottom: 9, right: 14)
         textView.delegate = self
@@ -59,30 +73,62 @@ final class ChatInputBar: UIView {
         }
         photoButton.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(12)
-            make.centerY.equalToSuperview()
+            make.top.greaterThanOrEqualTo(topBorder.snp.bottom).offset(8)
             make.size.equalTo(38)
         }
+        photoBottomToSafeArea = photoButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -8)
+        photoBottomToBarBottom = photoButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6)
+        photoBottomToSafeArea.isActive = true
+        photoBottomToBarBottom.isActive = false
         voiceButton.snp.makeConstraints { make in
             make.leading.equalTo(photoButton.snp.trailing).offset(8)
-            make.centerY.equalToSuperview()
+            make.centerY.equalTo(photoButton.snp.centerY)
             make.size.equalTo(38)
         }
         textView.snp.makeConstraints { make in
             make.leading.equalTo(voiceButton.snp.trailing).offset(10)
-            make.centerY.equalToSuperview()
+            make.centerY.equalTo(photoButton.snp.centerY)
             make.height.greaterThanOrEqualTo(38)
             make.height.lessThanOrEqualTo(100)
         }
         sendButton.snp.makeConstraints { make in
             make.leading.equalTo(textView.snp.trailing).offset(10)
             make.trailing.equalToSuperview().offset(-12)
-            make.centerY.equalToSuperview()
+            make.centerY.equalTo(textView.snp.centerY)
             make.size.equalTo(38)
         }
     }
-    
+
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        invalidateIntrinsicContentSize()
+    }
+
     override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 56)
+        let bottomInset: CGFloat = keyboardOpen ? 0 : safeAreaInsets.bottom
+        return CGSize(width: UIView.noIntrinsicMetric, height: 56 + bottomInset)
+    }
+
+    /// Клавиатура открыта: панель — только верхние углы; поле ввода — все четыре угла с `Theme.radiusLg`. Закрыта: панель снизу, поле — со всех сторон.
+    func setKeyboardOpen(_ isOpen: Bool) {
+        guard isOpen != keyboardOpen else { return }
+        keyboardOpen = isOpen
+        photoBottomToSafeArea.isActive = !isOpen
+        photoBottomToBarBottom.isActive = isOpen
+        if isOpen {
+            layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            textView.layer.maskedCorners = [
+                .layerMinXMinYCorner, .layerMaxXMinYCorner,
+                .layerMinXMaxYCorner, .layerMaxXMaxYCorner
+            ]
+        } else {
+            layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+            textView.layer.maskedCorners = [
+                .layerMinXMinYCorner, .layerMaxXMinYCorner,
+                .layerMinXMaxYCorner, .layerMaxXMaxYCorner
+            ]
+        }
+        invalidateIntrinsicContentSize()
     }
     
     func configure(vm: ChatViewModel) {

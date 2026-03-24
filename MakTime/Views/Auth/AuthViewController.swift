@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — вход / регистрация
+// UIScrollView + UIStackView, поля логина/пароля, кнопки; клавиатура и отступы контента.
+
 final class AuthViewController: UIViewController {
     private let authService: AuthService
     private let vm = AuthViewModel()

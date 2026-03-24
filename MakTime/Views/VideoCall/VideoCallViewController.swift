@@ -3,6 +3,9 @@ import WebRTC
 import Combine
 import Lottie
 
+// MARK: - UI / layout — полноэкранный видеозвонок
+// Превью local/remote, кнопки управления, Lottie/состояния; не путать с CallFloatingWindow.
+
 final class VideoCallViewController: UIViewController {
     private let target: CallTarget
     private let authService: AuthService

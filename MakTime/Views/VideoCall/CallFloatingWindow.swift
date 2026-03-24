@@ -1,6 +1,9 @@
 import UIKit
 import WebRTC
 
+// MARK: - UI / layout — мини-окно звонка (отдельное UIWindow)
+// Размер, позиция, жесты pan/tap, превью RTCMTLVideoView.
+
 /// Маленькое плавающее окно видеозвонка (как в Telegram/WhatsApp).
 /// Используется когда системный PiP недоступен (симулятор) или как in-app минимизация.
 final class CallFloatingWindow: UIWindow {

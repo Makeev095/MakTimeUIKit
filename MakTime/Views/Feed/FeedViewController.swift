@@ -2,6 +2,9 @@ import UIKit
 import Combine
 import SnapKit
 
+// MARK: - UI / layout — лента (UIKit-вариант, таблица)
+// UITableView + refresh; дублирует сценарий ленты в UIKit. Основной UI — `FeedSwiftUIView`.
+
 final class FeedViewController: UIViewController {
     private let authService: AuthService
     private let vm = FeedViewModel()

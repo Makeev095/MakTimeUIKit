@@ -1,6 +1,9 @@
 import UIKit
 import Lottie
 
+// MARK: - UI / layout — индикатор загрузки (Lottie + fallback spinner)
+// Имя JSON из бандла; при ошибке — UIActivityIndicatorView.
+
 /// Анимированный индикатор загрузки через Lottie.
 /// Добавьте loading.json в проект для кастомной анимации, иначе показывается UIActivityIndicator.
 final class LoadingLottieView: UIView {

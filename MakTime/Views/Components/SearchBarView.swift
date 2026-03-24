@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — строка поиска (переиспользуемая)
+// Поле, кнопка очистки, фон и скругление — для списков (чаты, контакты).
+
 final class SearchBarView: UIView {
     var text: String {
         get { textField.text ?? "" }

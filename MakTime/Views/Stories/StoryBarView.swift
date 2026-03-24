@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — горизонтальная полоска сторис над списком чатов
+// UIScrollView + UIStackView с аватарками, кнопка «добавить».
+
 final class StoryBarView: UIView {
     var onViewStories: (([StoryUser], Int) -> Void)?
     var onAddStory: (() -> Void)?

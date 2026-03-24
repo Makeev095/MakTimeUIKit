@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — ячейка сообщения (пузырь)
+// Исходящие/входящие цвета (Theme.msgSent/msgReceived), скругления, медиа, время в строке.
+
 final class MessageCell: UITableViewCell {
     private let bubbleView = UIView()
     /// Вертикально: текст, строка времени (время прижато к краю через spacer).

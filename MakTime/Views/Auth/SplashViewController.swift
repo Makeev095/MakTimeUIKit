@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — заставка при старте (UIKit)
+// Логотип/текст по центру; короткий экран до основного flow.
+
 final class SplashViewController: UIViewController {
     private let logoLabel: UILabel = {
         let l = UILabel()

@@ -1,6 +1,9 @@
 import UIKit
 import Combine
 
+// MARK: - UI / layout — вкладка «Чаты»: сторис + список
+// Вертикально: StoryBarView, разделитель, вложенный ConversationListViewController (констрейнты между блоками).
+
 final class ChatsContainerViewController: UIViewController {
     private let authService: AuthService
     private let socketService: SocketService

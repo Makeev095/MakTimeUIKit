@@ -1,6 +1,9 @@
 import SwiftUI
 import Lottie
 
+// MARK: - UI / layout — корень SwiftUI после запуска
+// Ветка: splash (Lottie) / MainShellView / Auth (UIKit в Representable). Фон корня — MTColor.bgPrimary.
+
 struct RootSwiftUIView: View {
     @ObservedObject var authService: AuthService
     @ObservedObject var socketService: SocketService
@@ -20,7 +23,7 @@ struct RootSwiftUIView: View {
                     )
                 }
             } else {
-                AuthViewControllerRepresentable(authService: authService)
+                AuthSwiftUIView(authService: authService)
                     .ignoresSafeArea()
             }
         }
@@ -36,14 +39,4 @@ struct RootSwiftUIView: View {
                 .frame(width: 120, height: 120)
         }
     }
-}
-
-struct AuthViewControllerRepresentable: UIViewControllerRepresentable {
-    let authService: AuthService
-
-    func makeUIViewController(context: Context) -> AuthViewController {
-        AuthViewController(authService: authService)
-    }
-
-    func updateUIViewController(_ uiViewController: AuthViewController, context: Context) {}
 }

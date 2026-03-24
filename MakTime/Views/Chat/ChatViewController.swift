@@ -2,6 +2,10 @@ import UIKit
 import Combine
 import PhotosUI
 
+// MARK: - UI / layout — экран переписки
+// Констрейнты: UITableView, подпись «печатает…», ChatInputBar; отступы при клавиатуре (keyboardWillChangeFrame).
+// Фон чата, навбар — здесь и в Theme; сетка сообщений — в MessageCell.
+
 final class ChatViewController: UIViewController {
     private let conversation: Conversation
     private let authService: AuthService
@@ -23,6 +27,7 @@ final class ChatViewController: UIViewController {
         self.onStartCall = onStartCall
         self.vm = ChatViewModel(conversation: conversation)
         super.init(nibName: nil, bundle: nil)
+        hidesBottomBarWhenPushed = true
     }
     
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -56,6 +61,10 @@ final class ChatViewController: UIViewController {
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .interactive
+
+        let tapOutside = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardFromOutsideTap))
+        tapOutside.cancelsTouchesInView = false
+        tableView.addGestureRecognizer(tapOutside)
         tableView.contentInsetAdjustmentBehavior = .never
         tableView.estimatedRowHeight = 360
         tableView.rowHeight = UITableView.automaticDimension
@@ -86,7 +95,7 @@ final class ChatViewController: UIViewController {
         chatInput.insetsLayoutMarginsFromSafeArea = false
         view.addSubview(chatInput)
         
-        let inputBottom = chatInput.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+        let inputBottom = chatInput.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         chatInputBottomConstraint = inputBottom
         
         NSLayoutConstraint.activate([
@@ -130,14 +139,18 @@ final class ChatViewController: UIViewController {
               let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval
         else { return }
         let keyboardFrameInView = view.convert(frame, from: nil)
-        let safeBottomY = view.bounds.maxY - view.safeAreaInsets.bottom
         let keyboardTop = keyboardFrameInView.minY
+        let keyboardOpen = keyboardTop < view.bounds.maxY - 0.5
+        /// Небольшой зазор между верхом клавиатуры и низом панели ввода (pt).
+        let keyboardGapAboveInput: CGFloat = 1.5
         let bottomInset: CGFloat
-        if keyboardTop >= view.bounds.maxY - 0.5 {
+        if !keyboardOpen {
             bottomInset = 0
         } else {
-            bottomInset = keyboardTop - safeBottomY
+            // Низ панели: на `keyboardGapAboveInput` выше верхней кромки клавиатуры.
+            bottomInset = keyboardTop - view.bounds.maxY - keyboardGapAboveInput
         }
+        chatInput.setKeyboardOpen(keyboardOpen)
         chatInputBottomConstraint?.constant = bottomInset
         let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? UIView.AnimationOptions.curveEaseInOut.rawValue
         UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16)) {
@@ -148,6 +161,10 @@ final class ChatViewController: UIViewController {
         }
     }
     
+    @objc private func dismissKeyboardFromOutsideTap() {
+        view.endEditing(true)
+    }
+
     private func scrollToBottom() {
         guard !vm.messages.isEmpty else { return }
         let last = IndexPath(row: vm.messages.count - 1, section: 0)

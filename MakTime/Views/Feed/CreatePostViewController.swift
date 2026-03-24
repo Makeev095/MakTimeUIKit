@@ -1,6 +1,9 @@
 import UIKit
 import PhotosUI
 
+// MARK: - UI / layout — создание поста (фото + подпись)
+// Превью изображения, UITextView для текста, кнопки публикации/закрытия.
+
 final class CreatePostViewController: UIViewController {
     private let vm: FeedViewModel
     private let onClose: () -> Void

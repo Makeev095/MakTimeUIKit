@@ -1,6 +1,9 @@
 import AVFoundation
 import UIKit
 
+// MARK: - UI / layout — слой видео для PiP (системная картинка в картинке)
+// `videoGravity` и размер задаются здесь; не основной полноэкранный звонок.
+
 /// View с AVSampleBufferDisplayLayer для PiP.
 /// Apple требует именно этот слой — RTCMTLVideoView/GLKView не поддерживаются в PiP.
 final class SampleBufferVideoCallView: UIView {

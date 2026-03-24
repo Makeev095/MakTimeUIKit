@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AFE5F6A7B8C9D0E1F2A3B4C5D8 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = AFE5F6A7B8C9D0E1F2A3B4C5D7 /* Alamofire */; };
+		AFE5F6A7B8C9D0E1F2A3B4C5DB /* AlamofireHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE5F6A7B8C9D0E1F2A3B4C5D9 /* AlamofireHTTP.swift */; };
+		FNT0000000000000000000003 /* PlusJakartaSans-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FNT0000000000000000000001 /* PlusJakartaSans-Variable.ttf */; };
+		FNT0000000000000000000004 /* OFL-PlusJakartaSans.txt in Resources */ = {isa = PBXBuildFile; fileRef = FNT0000000000000000000002 /* OFL-PlusJakartaSans.txt */; };
 		02699AEB262FD4FF43F1850A /* FeedVideoSoundState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88BBD0667A9AAD857EA820FF /* FeedVideoSoundState.swift */; };
 		0BCDBE68EAD7DAD6B2A4ABCA /* StoryBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B9D4CBC609FD6713DE9BC05 /* StoryBarView.swift */; };
 		12FA87AB3AA4EAB2AFB4675F /* FeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED7D9D1486F892D30D47E34 /* FeedViewModel.swift */; };
@@ -62,6 +66,10 @@
 		BD0000000000000000000007 /* Theme+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000007 /* Theme+SwiftUI.swift */; };
 		BD0000000000000000000008 /* FeedSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000008 /* FeedSwiftUIView.swift */; };
 		BD0000000000000000000009 /* MainShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000009 /* MainShellView.swift */; };
+		BD0000000000000000000016 /* AuthSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000016 /* AuthSwiftUIView.swift */; };
+		BD0000000000000000000017 /* ChatsRootSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000017 /* ChatsRootSwiftUIView.swift */; };
+		BD0000000000000000000018 /* ContactsSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000018 /* ContactsSwiftUIView.swift */; };
+		BD0000000000000000000019 /* SettingsSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1000000000000000000019 /* SettingsSwiftUIView.swift */; };
 		C820C4210E5F01C49457160A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 74906BD696831E62C588D609 /* Assets.xcassets */; };
 		C93281ADD7AA63547A7811C3 /* IncomingCall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63152E21739DC55AB47263F5 /* IncomingCall.swift */; };
 		CC3FDE24DC484DD1980C17AF /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C4E5E821993487BAFB1CDA3 /* SettingsViewController.swift */; };
@@ -137,6 +145,10 @@
 		BD1000000000000000000007 /* Theme+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Theme+SwiftUI.swift"; sourceTree = "<group>"; };
 		BD1000000000000000000008 /* FeedSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedSwiftUIView.swift; sourceTree = "<group>"; };
 		BD1000000000000000000009 /* MainShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainShellView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000016 /* AuthSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSwiftUIView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000017 /* ChatsRootSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsRootSwiftUIView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000018 /* ContactsSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSwiftUIView.swift; sourceTree = "<group>"; };
+		BD1000000000000000000019 /* SettingsSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSwiftUIView.swift; sourceTree = "<group>"; };
 		C1FB74F22F65AD87E69830F5 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
 		C8D9EAF0A1B2C3D4E5F6A7B8 /* CallFloatingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFloatingWindow.swift; sourceTree = "<group>"; };
 		CC573B6648A449939B7BB03A /* ReelsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReelsViewController.swift; sourceTree = "<group>"; };
@@ -159,6 +171,9 @@
 		FEC2A58094024E509282D0B1 /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
 		S1A2M3P4L5E6B7U8F9F0E2R /* SampleBufferVideoRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleBufferVideoRenderer.swift; sourceTree = "<group>"; };
 		S1A2M3P4L5E6B7U8F9F0E4R /* SampleBufferVideoCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleBufferVideoCallView.swift; sourceTree = "<group>"; };
+		FNT0000000000000000000001 /* PlusJakartaSans-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-Variable.ttf"; sourceTree = "<group>"; };
+		FNT0000000000000000000002 /* OFL-PlusJakartaSans.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-PlusJakartaSans.txt"; sourceTree = "<group>"; };
+		AFE5F6A7B8C9D0E1F2A3B4C5D9 /* AlamofireHTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlamofireHTTP.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +181,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFE5F6A7B8C9D0E1F2A3B4C5D8 /* Alamofire in Frameworks */,
 				A728AB032F6ED04A005B937B /* SkeletonView in Frameworks */,
 				A728AB022F6ED04A005B937B /* SnapKit in Frameworks */,
 				A728AB012F6ED04A005B937B /* Kingfisher in Frameworks */,
@@ -207,6 +223,10 @@
 				34143A65787D45DA93CD239E /* RootViewController.swift */,
 				BD1000000000000000000006 /* RootSwiftUIView.swift */,
 				BD1000000000000000000009 /* MainShellView.swift */,
+				BD1000000000000000000016 /* AuthSwiftUIView.swift */,
+				BD1000000000000000000017 /* ChatsRootSwiftUIView.swift */,
+				BD1000000000000000000018 /* ContactsSwiftUIView.swift */,
+				BD1000000000000000000019 /* SettingsSwiftUIView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -310,6 +330,7 @@
 			isa = PBXGroup;
 			children = (
 				41FA8626C3777277D3C63543 /* APIService.swift */,
+				AFE5F6A7B8C9D0E1F2A3B4C5D9 /* AlamofireHTTP.swift */,
 				00E92B43D16197A3CED6B6F3 /* AuthService.swift */,
 				BD1000000000000000000003 /* CallKitManager.swift */,
 				BD1000000000000000000005 /* CallCoordinator.swift */,
@@ -367,8 +388,18 @@
 			children = (
 				74906BD696831E62C588D609 /* Assets.xcassets */,
 				L0TT1E00000000000000001 /* Lottie */,
+				FNTGRP000000000000000001 /* Fonts */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		FNTGRP000000000000000001 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				FNT0000000000000000000001 /* PlusJakartaSans-Variable.ttf */,
+				FNT0000000000000000000002 /* OFL-PlusJakartaSans.txt */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		L0TT1E00000000000000001 /* Lottie */ = {
@@ -441,6 +472,7 @@
 				F6A7B8C9D0E1F2A3B4C5D6E7 /* Kingfisher */,
 				A7B8C9D0E1F2A3B4C5D6E7F8 /* SnapKit */,
 				B8C9D0E1F2A3B4C5D6E7F8A9 /* SkeletonView */,
+				AFE5F6A7B8C9D0E1F2A3B4C5D7 /* Alamofire */,
 			);
 			productName = MakTime;
 			productReference = 7C6765289B81975BE1C70FDC /* MakTime.app */;
@@ -473,6 +505,7 @@
 				B2C3D4E5F6A7B8C9D0E1F2A3 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				C3D4E5F6A7B8C9D0E1F2A3B4 /* XCRemoteSwiftPackageReference "SnapKit" */,
 				D4E5F6A7B8C9D0E1F2A3B4C5 /* XCRemoteSwiftPackageReference "SkeletonView" */,
+				AFE5F6A7B8C9D0E1F2A3B4C5D6 /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -490,6 +523,8 @@
 				C820C4210E5F01C49457160A /* Assets.xcassets in Resources */,
 				BD0000000000000000000014 /* loading_dots.json in Resources */,
 				BD0000000000000000000015 /* phone_ring.json in Resources */,
+				FNT0000000000000000000003 /* PlusJakartaSans-Variable.ttf in Resources */,
+				FNT0000000000000000000004 /* OFL-PlusJakartaSans.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -533,9 +568,14 @@
 				BD0000000000000000000005 /* CallCoordinator.swift in Sources */,
 				BD0000000000000000000006 /* RootSwiftUIView.swift in Sources */,
 				BD0000000000000000000009 /* MainShellView.swift in Sources */,
+				BD0000000000000000000016 /* AuthSwiftUIView.swift in Sources */,
+				BD0000000000000000000017 /* ChatsRootSwiftUIView.swift in Sources */,
+				BD0000000000000000000018 /* ContactsSwiftUIView.swift in Sources */,
+				BD0000000000000000000019 /* SettingsSwiftUIView.swift in Sources */,
 				BD0000000000000000000007 /* Theme+SwiftUI.swift in Sources */,
 				BD0000000000000000000008 /* FeedSwiftUIView.swift in Sources */,
 				D5357464FDAF5B7B524ACEEC /* APIService.swift in Sources */,
+				AFE5F6A7B8C9D0E1F2A3B4C5DB /* AlamofireHTTP.swift in Sources */,
 				E39AB08271CF8D254B0FE280 /* AuthService.swift in Sources */,
 				47DBD60B7CB03C901D8F8562 /* AuthViewModel.swift in Sources */,
 				2C6B2E3FF68AD5DE551989CA /* AvatarView.swift in Sources */,
@@ -822,6 +862,14 @@
 				minimumVersion = 1.30.0;
 			};
 		};
+		AFE5F6A7B8C9D0E1F2A3B4C5D6 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -859,6 +907,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5238C2BF1CCA8688F97831C6 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
 			productName = KeychainAccess;
+		};
+		AFE5F6A7B8C9D0E1F2A3B4C5D7 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AFE5F6A7B8C9D0E1F2A3B4C5D6 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

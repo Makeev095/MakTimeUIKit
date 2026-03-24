@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout (глобальный старт)
+// `Theme.applyGlobalUIKitAppearance()` — единый стиль баров; без правок в Theme.swift изменения не подхватятся полностью.
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?

@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — аватар (инициалы / фото / онлайн-точка)
+// Размер `size`, цвет фона из hex, индикатор `showOnline`.
+
 final class AvatarView: UIView {
     var name: String = "" { didSet { updateInitials() } }
     var color: String = "#6C63FF" { didSet { updateColor() } }

@@ -1,5 +1,8 @@
 import UIKit
 
+// MARK: - UI / layout — карточка поста в таблице (UIKit)
+// Карточка: аватар, текст, медиа, лайк/комментарии; тени и скругления контейнера.
+
 final class PostCardCell: UITableViewCell {
     private let cardContainer = UIView()
     private let avatar = AvatarView()
