@@ -141,10 +141,8 @@ class VideoCallViewModel: ObservableObject {
     
     private func startRingtone() {
         guard target.isInitiator else { return }
-        let ctx = AVAudioSession.sharedInstance()
-        try? ctx.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP])
-        try? ctx.setActive(true)
-        
+        applyCallAudioCategoryOnly()
+
         ringTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.playBeep()
@@ -155,8 +153,6 @@ class VideoCallViewModel: ObservableObject {
     
     private func playBeep() {
         guard status == .calling else { stopRingtone(); return }
-        let oscillator = AVAudioSession.sharedInstance()
-        try? oscillator.setActive(true)
         AudioServicesPlaySystemSound(1151)
     }
     
@@ -248,24 +244,38 @@ class VideoCallViewModel: ObservableObject {
         webRTCService.switchCamera()
     }
 
-    private func configureAudioSession(speaker: Bool) {
-        let ctx = AVAudioSession.sharedInstance()
-        let options: AVAudioSession.CategoryOptions = speaker
+    /// Только категория/режим/опции — без `setActive`: активацией управляет CallKit, иначе — ошибка 561017449.
+    private func applyCallAudioCategoryOnly(preferSpeaker: Bool = true) {
+        let rtc = RTCAudioSession.sharedInstance()
+        rtc.useManualAudio = false
+        rtc.lockForConfiguration()
+        defer { rtc.unlockForConfiguration() }
+        let mode: AVAudioSession.Mode = target.isVideo ? .videoChat : .voiceChat
+        let toSpeaker = target.isVideo || preferSpeaker
+        let options: AVAudioSession.CategoryOptions = toSpeaker
             ? [.defaultToSpeaker, .allowBluetoothHFP]
             : [.allowBluetoothHFP]
-        try? ctx.setCategory(.playAndRecord, mode: .voiceChat, options: options)
-        try? ctx.setActive(true)
+        do {
+            try rtc.setCategory(AVAudioSession.Category.playAndRecord, mode: mode, options: options)
+            if toSpeaker {
+                try rtc.overrideOutputAudioPort(.speaker)
+            }
+        } catch {
+            print("[Call] RTCAudioSession category: \(error)")
+        }
+        rtc.isAudioEnabled = true
     }
 
-    /// После соединения: громкая связь через динамик (важно для видеозвонков у уха).
+    private func configureAudioSession(speaker: Bool) {
+        applyCallAudioCategoryOnly(preferSpeaker: speaker)
+    }
+
+    /// После ICE connected: повторно выставить маршрут и режим (на случай если CallKit пришёл раньше `target`).
     private func routeCallAudioToSpeakerIfNeeded() {
         guard target.isVideo else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
             guard let self, self.status == .connected else { return }
-            let session = AVAudioSession.sharedInstance()
-            try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP])
-            try? session.setActive(true)
-            try? session.overrideOutputAudioPort(.speaker)
+            self.applyCallAudioCategoryOnly()
         }
     }
 }

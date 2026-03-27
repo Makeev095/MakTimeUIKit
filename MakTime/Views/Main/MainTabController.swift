@@ -10,6 +10,7 @@ final class MainTabController: UITabBarController, UITabBarControllerDelegate {
     private let socketService: SocketService
     private let callCoordinator: CallCoordinator
     private var cancellables = Set<AnyCancellable>()
+    private var chatPushOpenCancellable: AnyCancellable?
 
     init(authService: AuthService, socketService: SocketService, callCoordinator: CallCoordinator) {
         self.authService = authService
@@ -60,6 +61,13 @@ final class MainTabController: UITabBarController, UITabBarControllerDelegate {
         settingsNav.tabBarItem = UITabBarItem(title: "Профиль", image: UIImage(systemName: "person.crop.circle.fill"), tag: 3)
 
         viewControllers = [chatsNav, feedHost, contactsNav, settingsNav]
+
+        chatPushOpenCancellable = NotificationCenter.default.publisher(for: .makTimeOpenChatFromNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let id = note.userInfo?["conversationId"] as? String else { return }
+                self?.openConversationFromNotification(conversationId: id)
+            }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -92,6 +100,21 @@ final class MainTabController: UITabBarController, UITabBarControllerDelegate {
             }
         )
         chatsNav.pushViewController(chatVC, animated: true)
+    }
+
+    private func openConversationFromNotification(conversationId: String) {
+        Task {
+            let list = (try? await APIService.shared.getConversations()) ?? []
+            guard let conv = list.first(where: { $0.id == conversationId }) else { return }
+            await MainActor.run {
+                selectedIndex = 0
+                postFeedTabVisibility()
+                if let chatsNav = viewControllers?[0] as? UINavigationController {
+                    chatsNav.popToRootViewController(animated: false)
+                }
+                openChat(conversation: conv)
+            }
+        }
     }
 
     private func openChatForUser(_ user: User) {

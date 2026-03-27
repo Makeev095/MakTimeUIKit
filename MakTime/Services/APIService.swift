@@ -56,6 +56,12 @@ actor APIService {
         let body: [String: Any] = ["token": hexToken, "platform": "ios"]
         let _: EmptyResponse = try await post("/devices/voip-token", body: body)
     }
+
+    /// Регистрация APNs device token для обычных уведомлений о сообщениях (alert, не VoIP). Бэкенд должен отправлять push с `conversationId` в payload.
+    func registerAPNsDeviceToken(hexToken: String) async throws {
+        let body: [String: Any] = ["token": hexToken, "platform": "ios"]
+        let _: EmptyResponse = try await post("/devices/apns-token", body: body)
+    }
     
     func updateProfile(displayName: String, bio: String, avatarUrl: String? = nil) async throws -> User {
         var body: [String: Any] = ["displayName": displayName, "bio": bio]

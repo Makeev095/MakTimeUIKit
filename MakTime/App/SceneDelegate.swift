@@ -21,6 +21,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             .sink { token in
                 if let token = token {
                     socketService.connect(token: token)
+                    ChatPushNotifications.registerForChatAlertsIfNeeded()
                 } else {
                     socketService.disconnect()
                 }

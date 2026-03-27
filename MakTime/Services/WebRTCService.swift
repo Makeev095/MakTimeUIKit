@@ -291,6 +291,22 @@ extension WebRTCService: RTCPeerConnectionDelegate {
                 self.delegate?.webRTCService(self, didReceiveRemoteVideoTrack: videoTrack)
             }
         }
+        for audio in stream.audioTracks {
+            audio.isEnabled = true
+        }
+    }
+
+    /// Unified Plan: удалённое аудио приходит здесь; без явного включения и синхронной сессии звук часто отсутствует.
+    func peerConnection(_ peerConnection: RTCPeerConnection, didAdd rtpReceiver: RTCRtpReceiver, streams: [RTCMediaStream]) {
+        if let audio = rtpReceiver.track as? RTCAudioTrack {
+            audio.isEnabled = true
+        }
+        if let video = rtpReceiver.track as? RTCVideoTrack {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.delegate?.webRTCService(self, didReceiveRemoteVideoTrack: video)
+            }
+        }
     }
     
     func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {}

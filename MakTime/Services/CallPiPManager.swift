@@ -112,6 +112,7 @@ final class CallPiPManager: NSObject, ObservableObject {
         if let track = currentRemoteTrack, let renderer = sampleBufferRenderer {
             track.remove(renderer)
         }
+        sampleBufferView?.sampleBufferDisplayLayer.flushAndRemoveImage()
         pipController = nil
         pipContentVC = nil
         sampleBufferView = nil

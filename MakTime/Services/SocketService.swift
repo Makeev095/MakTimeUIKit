@@ -30,7 +30,11 @@ class SocketService: ObservableObject {
     let webrtcIceCandidate = PassthroughSubject<(from: String, candidate: [String: Any]), Never>()
     
     private var currentToken: String?
-    
+
+    /// Сообщения, отправленные до завершения `socket.connect()` (иначе Socket.IO: «Tried emitting when not connected»).
+    private var pendingEmits: [() -> Void] = []
+    private let maxPendingEmits = 300
+
     func connect(token: String) {
         disconnect()
         currentToken = token
@@ -50,6 +54,7 @@ class SocketService: ObservableObject {
     }
     
     func disconnect() {
+        pendingEmits.removeAll()
         socket?.disconnect()
         socket?.removeAllHandlers()
         manager = nil
@@ -57,6 +62,28 @@ class SocketService: ObservableObject {
         isConnected = false
         currentToken = nil
         onlineUserIds.removeAll()
+    }
+
+    /// Отправить сейчас или после `connect` (и при реконнекте снова сработает `flush`).
+    private func emitWhenConnected(_ work: @escaping () -> Void) {
+        guard let sock = socket else { return }
+        if sock.status == .connected {
+            work()
+        } else {
+            if pendingEmits.count >= maxPendingEmits {
+                pendingEmits.removeFirst(pendingEmits.count - maxPendingEmits + 1)
+            }
+            pendingEmits.append(work)
+        }
+    }
+
+    private func flushPendingEmits() {
+        guard let socket = socket, socket.status == .connected else { return }
+        let batch = pendingEmits
+        pendingEmits.removeAll()
+        for execute in batch {
+            execute()
+        }
     }
 
     func isUserOnline(_ userId: String) -> Bool {
@@ -74,7 +101,21 @@ class SocketService: ObservableObject {
         guard let socket = socket else { return }
         
         socket.on(clientEvent: .connect) { [weak self] _, _ in
-            Task { @MainActor in self?.isConnected = true }
+            Task { @MainActor in
+                guard let self else { return }
+                self.isConnected = true
+                await Task.yield()
+                self.flushPendingEmits()
+            }
+        }
+
+        socket.on(clientEvent: .reconnect) { [weak self] _, _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isConnected = true
+                await Task.yield()
+                self.flushPendingEmits()
+            }
         }
         
         socket.on(clientEvent: .disconnect) { [weak self] _, _ in
@@ -207,7 +248,9 @@ class SocketService: ObservableObject {
     // MARK: - Emit methods
     
     func joinConversation(_ conversationId: String) {
-        socket?.emit("conversation:join", conversationId)
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("conversation:join", conversationId)
+        }
     }
     
     func sendMessage(conversationId: String, text: String? = nil, type: String = "text",
@@ -219,51 +262,73 @@ class SocketService: ObservableObject {
         if let fileName = fileName { payload["fileName"] = fileName }
         if let duration = duration { payload["duration"] = duration }
         if let replyToId = replyToId { payload["replyToId"] = replyToId }
-        socket?.emit("message:send", payload)
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("message:send", payload)
+        }
     }
     
     func markRead(conversationId: String) {
-        socket?.emit("message:read", ["conversationId": conversationId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("message:read", ["conversationId": conversationId])
+        }
     }
     
     func startTyping(conversationId: String) {
-        socket?.emit("typing:start", ["conversationId": conversationId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("typing:start", ["conversationId": conversationId])
+        }
     }
     
     func stopTyping(conversationId: String) {
-        socket?.emit("typing:stop", ["conversationId": conversationId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("typing:stop", ["conversationId": conversationId])
+        }
     }
     
     func initiateCall(to userId: String, conversationId: String, callerName: String, isVideo: Bool) {
-        socket?.emit("call:initiate", [
-            "to": userId,
-            "conversationId": conversationId,
-            "callerName": callerName,
-            "isVideo": isVideo
-        ])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("call:initiate", [
+                "to": userId,
+                "conversationId": conversationId,
+                "callerName": callerName,
+                "isVideo": isVideo
+            ])
+        }
     }
     
     func acceptCall(to userId: String) {
-        socket?.emit("call:accept", ["to": userId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("call:accept", ["to": userId])
+        }
     }
     
     func rejectCall(to userId: String) {
-        socket?.emit("call:reject", ["to": userId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("call:reject", ["to": userId])
+        }
     }
     
     func endCall(to userId: String) {
-        socket?.emit("call:end", ["to": userId])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("call:end", ["to": userId])
+        }
     }
     
     func sendWebRTCOffer(to userId: String, offer: [String: Any]) {
-        socket?.emit("webrtc:offer", ["to": userId, "offer": offer])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("webrtc:offer", ["to": userId, "offer": offer])
+        }
     }
     
     func sendWebRTCAnswer(to userId: String, answer: [String: Any]) {
-        socket?.emit("webrtc:answer", ["to": userId, "answer": answer])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("webrtc:answer", ["to": userId, "answer": answer])
+        }
     }
     
     func sendICECandidate(to userId: String, candidate: [String: Any]) {
-        socket?.emit("webrtc:ice-candidate", ["to": userId, "candidate": candidate])
+        emitWhenConnected { [weak self] in
+            self?.socket?.emit("webrtc:ice-candidate", ["to": userId, "candidate": candidate])
+        }
     }
 }

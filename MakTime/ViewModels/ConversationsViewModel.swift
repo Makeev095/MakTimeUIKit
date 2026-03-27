@@ -4,6 +4,8 @@ import Combine
 extension Notification.Name {
     /// Локальное обновление превью после отправки сообщения (если сокет не эхоит отправителю).
     static let conversationListPreviewUpdated = Notification.Name("MakTime.conversationListPreviewUpdated")
+    /// Открыть чат из баннера / тапа по push (`userInfo`: `conversationId`).
+    static let makTimeOpenChatFromNotification = Notification.Name("MakTime.openChatFromNotification")
 }
 
 @MainActor

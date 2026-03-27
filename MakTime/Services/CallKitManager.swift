@@ -20,6 +20,8 @@ final class CallKitManager: NSObject {
     var onSetMuted: ((UUID, Bool) -> Void)?
     /// Исходящий: система готова — показать UI и поднять WebRTC
     var onPerformStartOutgoing: ((UUID, CallTarget) -> Void)?
+    /// Система сбросила CallKit (см. `providerDidReset` — очистить PiP/UI звонка).
+    var onProviderReset: (() -> Void)?
 
     override init() {
         let config = CXProviderConfiguration(localizedName: "MakTime")
@@ -81,6 +83,13 @@ final class CallKitManager: NSObject {
         outgoingContexts.removeValue(forKey: uuid)
     }
 
+    /// Видео/аудио текущего звонка (для режима `AVAudioSession` после активации CallKit).
+    private var prefersVideoForActiveCall: Bool {
+        if let call = pendingIncoming.values.first { return call.isVideo }
+        if let ctx = outgoingContexts.values.first { return ctx.isVideo }
+        return true
+    }
+
     /// Сообщить CallKit о фактическом соединении (ICE connected/completed): исходящий — `reportOutgoingCall(connectedAt:)`, входящий — `fulfill` ответа с датой подключения.
     func notifyMediaConnected(callKitUUID uuid: UUID) {
         if let answer = pendingAnswerAction, answer.callUUID == uuid {
@@ -101,6 +110,7 @@ extension CallKitManager: CXProviderDelegate {
             self.pendingIncoming.removeAll()
             self.outgoingContexts.removeAll()
             self.pendingAnswerAction = nil
+            self.onProviderReset?()
         }
     }
 
@@ -108,6 +118,26 @@ extension CallKitManager: CXProviderDelegate {
         let rtc = RTCAudioSession.sharedInstance()
         rtc.audioSessionDidActivate(audioSession)
         rtc.isAudioEnabled = true
+        // Категорию и порт задаём здесь — без повторного setActive (иначе NSOSStatusErrorDomain 561017449).
+        Task { @MainActor in
+            let rtc2 = RTCAudioSession.sharedInstance()
+            rtc2.lockForConfiguration()
+            defer { rtc2.unlockForConfiguration() }
+            let isVideo = self.prefersVideoForActiveCall
+            let mode: AVAudioSession.Mode = isVideo ? .videoChat : .voiceChat
+            let options: AVAudioSession.CategoryOptions = isVideo
+                ? [.defaultToSpeaker, .allowBluetoothHFP]
+                : [.allowBluetoothHFP]
+            do {
+                try rtc2.setCategory(AVAudioSession.Category.playAndRecord, mode: mode, options: options)
+                if isVideo {
+                    try rtc2.overrideOutputAudioPort(.speaker)
+                }
+            } catch {
+                print("[CallKit] RTCAudioSession category after activate: \(error)")
+            }
+            rtc2.isAudioEnabled = true
+        }
     }
 
     nonisolated func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {

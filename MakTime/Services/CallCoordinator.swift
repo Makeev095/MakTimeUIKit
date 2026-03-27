@@ -41,7 +41,24 @@ final class CallCoordinator: ObservableObject {
         wireSocketIncoming()
     }
 
+    private func resetCallUIAfterProviderReset() {
+        pipManager.cleanup()
+        floatingWindow?.isHidden = true
+        floatingWindow = nil
+        cancelFloatingSubscription()
+        let vc = videoCallVC
+        videoCallVC = nil
+        callTarget = nil
+        activeCallKitUUID = nil
+        endBackgroundTask()
+        vc?.vm.terminateForCallKit()
+        vc?.dismiss(animated: false)
+    }
+
     private func wireCallKit() {
+        callKit.onProviderReset = { [weak self] in
+            self?.resetCallUIAfterProviderReset()
+        }
         callKit.onAnswerIncoming = { [weak self] uuid, incoming in
             self?.presentAnsweredIncoming(uuid: uuid, incoming: incoming)
         }
@@ -64,9 +81,13 @@ final class CallCoordinator: ObservableObject {
                 if let err { print("[VoIP] report incoming: \(err)") }
             }
         }
+        // Не перетирать этот колбэк извне: без регистрации токена на бэкенде VoIP push не придёт (в т.ч. до первого входа в UI).
         voipPush.onVoIPToken = { token in
             let hex = token.map { String(format: "%02.2hhx", $0) }.joined()
             print("[VoIP] device token (send to backend): \(hex)")
+            Task {
+                try? await APIService.shared.registerVoIPDeviceToken(hexToken: hex)
+            }
         }
     }
 
@@ -141,13 +162,19 @@ final class CallCoordinator: ObservableObject {
 
     private func endCallFromApp(callKitUUID: UUID) {
         callKit.reportCallEnded(uuid: callKitUUID)
+        pipManager.cleanup()
+        let vc = videoCallVC
+        videoCallVC = nil
         callTarget = nil
         activeCallKitUUID = nil
-        videoCallVC = nil
         endBackgroundTask()
         floatingWindow?.isHidden = true
         floatingWindow = nil
         cancelFloatingSubscription()
+        /// `VideoCallViewModel` уже вызвал `cleanup()` в `endCall` / `endCallRemote` — только закрываем модалку, как при `handleCallKitEnd`.
+        if vc?.presentingViewController != nil {
+            vc?.dismiss(animated: true)
+        }
     }
 
     private func handleCallKitEnd(uuid: UUID) {
@@ -157,13 +184,16 @@ final class CallCoordinator: ObservableObject {
             return
         }
         guard activeCallKitUUID == uuid else { return }
-        videoCallVC?.vm.terminateForCallKit()
+        let vc = videoCallVC
+        videoCallVC = nil
         callTarget = nil
         activeCallKitUUID = nil
-        videoCallVC = nil
+        pipManager.cleanup()
         floatingWindow?.isHidden = true
         floatingWindow = nil
         cancelFloatingSubscription()
+        vc?.vm.terminateForCallKit()
+        vc?.dismiss(animated: true)
     }
 
     private func cancelFloatingSubscription() {
@@ -246,6 +276,7 @@ final class CallCoordinator: ObservableObject {
                 self?.floatingWindow?.isHidden = true
                 self?.floatingWindow = nil
                 self?.cancelFloatingSubscription()
+                self?.pipManager.cleanup()
                 self?.videoCallVC?.vm.endCall()
                 self?.videoCallVC = nil
                 self?.callTarget = nil
